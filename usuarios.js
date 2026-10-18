@@ -20,11 +20,11 @@
 
 // URL do Apps Script, informada uma única vez. Todos os e-mails abaixo usam este
 // mesmo Apps Script; o que muda de um e-mail para outro é a planilha.
-const PLIPAG_URL_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzpXpxs7a_z_Y_4X9jGuKOajSpCHq17bxDZQo5Ev1fZifE_fBFtG72do33BILbAE6V2/exec';
+const PLIPAG_URL_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';
 
 // Lista de usuários: 'e-mail': ['Nome', 'ID da planilha', 'Validade'], (uma linha por pessoa, com vírgula no final)
 const USUARIOS = {
-    'seu-email@exemplo.com':       ['Sebastião Torquato',   'ID_DA_PLANILHA_1', '31/12/2026'],
+    'pagsebast@gmail.com':       ['Sebastião Torquato',   'ID_DA_PLANILHA_1', '31/12/2026'],
     'outra-pessoa@exemplo.com':    ['Nome da Outra Pessoa', 'ID_DA_PLANILHA_2', '30/06/2027'],
     'mais-uma-pessoa@exemplo.com': ['Mais Uma Pessoa',      'ID_DA_PLANILHA_3', ''],
 };
