@@ -3047,8 +3047,8 @@
         data: {
           labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
           datasets: [
-            { label: 'Receitas', data: serieRec || [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false },
-            { label: 'Despesas', data: serieDesp || [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false }
+            { label: 'Receitas', data: serieRec || [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false, borderWidth: 5, pointRadius: 5, pointHoverRadius: 7, order: 2 },
+            { label: 'Despesas', data: serieDesp || [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false, borderWidth: 2, borderDash: [6, 4], pointStyle: 'rectRot', pointRadius: 5, pointHoverRadius: 7, order: 1 }
           ]
         },
         options: {
