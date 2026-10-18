@@ -2243,8 +2243,8 @@
           <p><strong>Período:</strong> ${periodoTxt} | <strong>Gerado em:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
         </div>
         <div class="print-cards">
-          <div class="print-card"><div class="print-card-title">Receita</div><div class="print-card-val" style="color: #10b981;">R$ ${totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
-          <div class="print-card"><div class="print-card-title">Despesa</div><div class="print-card-val" style="color: #f43f5e;">R$ ${totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
+          <div class="print-card"><div class="print-card-title">Receitas</div><div class="print-card-val" style="color: #10b981;">R$ ${totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
+          <div class="print-card"><div class="print-card-title">Despesas</div><div class="print-card-val" style="color: #f43f5e;">R$ ${totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
           <div class="print-card"><div class="print-card-title">Saldo</div><div class="print-card-val" style="color: ${saldoTotal >= 0 ? '#10b981' : '#f43f5e'};">R$ ${saldoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
         </div>
         <div class="print-charts-grid">
