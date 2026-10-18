@@ -2883,13 +2883,6 @@
     }
 
     const TEMPO_MENSAGEM_SALVAR_MS = 10000;   // quanto tempo a mensagem de gravação do lançamento fica na tela
-    // Depois de salvar um lançamento, volta ao topo da página, onde fica o Saldo Consolidado.
-    function rolarParaSaldo() {
-      setTimeout(function() {
-        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
-      }, 60);
-    }
-
     function salvarLancamento(event, outroLancamento) {
       if (event) event.preventDefault();
       const porVoz = formularioPorVoz;
@@ -2925,7 +2918,6 @@
             btnSalvar.innerText = "Salvar";
             fecharModalNovaTransacao();
             carregarDados();
-            rolarParaSaldo();
             exibirToast("Lançamento salvo com sucesso!", "sucesso", TEMPO_MENSAGEM_SALVAR_MS);
             if (outroLancamento === 'sim') { if (porVoz) abrirModalVoz(); else abrirModalNovaTransacao(); }
           })
@@ -2953,7 +2945,6 @@
         fecharModalNovaTransacao();
         atualizarOpcoesCategorias(listaTransacoesGlobal);
         renderizarDados(obterTransacoesFiltradas());
-        rolarParaSaldo();
         exibirToast("Lançamento salvo!", "sucesso", TEMPO_MENSAGEM_SALVAR_MS);
         if (outroLancamento === 'sim') { if (porVoz) abrirModalVoz(); else abrirModalNovaTransacao(); }
       }
