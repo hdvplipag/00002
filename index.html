@@ -194,7 +194,7 @@
       </div>
       
       <h2 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight">PliPag</h2>
-      <p id="subtituloLogin" class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Entre com suas credenciais para continuar</p>
+      <p id="subtituloLogin" class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Entre com o e-mail cadastrado para continuar</p>
       
       <!-- Entrada rápida: "Continuar como ..." com a foto do usuário (aparece quando há perfil guardado neste aparelho) -->
       <div id="loginRapido" class="hidden space-y-3 text-left">
@@ -220,15 +220,16 @@
 
       <form id="formLogin" onsubmit="realizarLogin(event)" class="space-y-4 text-left">
         <div>
-          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">E-mail ou Usuário</label>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">E-mail cadastrado</label>
           <div class="relative">
             <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-            <input type="text" id="loginUsuario" required autocapitalize="none" autocorrect="off" spellcheck="false" oninput="this.value = this.value.toLowerCase()" placeholder="seu.email@exemplo.com" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white pl-10 pr-3.5 py-2.5 rounded-xl text-xs border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
+            <input type="text" id="loginUsuario" required autocapitalize="none" autocorrect="off" spellcheck="false" oninput="this.value = this.value.toLowerCase(); limparAvisoLogin()" placeholder="seu.email@exemplo.com" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white pl-10 pr-3.5 py-2.5 rounded-xl text-xs border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
           </div>
+          <p id="avisoLogin" class="hidden mt-1.5 text-[11px] font-semibold text-rose-500"></p>
         </div>
         
         <div>
-          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Senha</label>
+          <label id="rotuloSenhaLogin" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Senha</label>
           <div class="relative">
             <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
             <input type="password" id="loginSenha" required placeholder="••••••••" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white pl-10 pr-10 py-2.5 rounded-xl text-xs border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
@@ -236,6 +237,15 @@
               <i id="iconeOlhoSenha" class="fa-solid fa-eye text-xs"></i>
             </button>
           </div>
+        </div>
+
+        <div id="blocoConfirmaSenha" class="hidden">
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Confirme a nova senha</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="password" id="loginSenhaConfirma" placeholder="••••••••" autocomplete="new-password" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white pl-10 pr-3.5 py-2.5 rounded-xl text-xs border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
+          </div>
+          <p class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">Primeiro acesso deste e-mail: a senha digitada acima será cadastrada (mínimo de 6 caracteres).</p>
         </div>
 
         <button type="submit" id="btnLoginSubmit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 mt-2">
@@ -551,8 +561,8 @@
           <input type="text" id="inputPerfilNome" placeholder="Seu Nome Completo" required class="w-full bg-slate-900 text-white border border-slate-700 rounded-xl p-2.5 text-sm">
         </div>
         <div>
-          <label class="block text-xs font-semibold theme-subtext mb-1">Novo E-mail / Usuário</label>
-          <input type="text" id="inputPerfilUsuario" required class="w-full bg-slate-900 text-white border border-slate-700 rounded-xl p-2.5 text-sm">
+          <label class="block text-xs font-semibold theme-subtext mb-1">E-mail cadastrado <span class="font-normal opacity-70">(não pode ser alterado)</span></label>
+          <input type="text" id="inputPerfilUsuario" readonly tabindex="-1" aria-readonly="true" title="O e-mail cadastrado não pode ser alterado" class="w-full bg-slate-800 text-slate-400 border border-slate-700 rounded-xl p-2.5 text-sm cursor-not-allowed select-none">
         </div>
         <div>
           <label class="block text-xs font-semibold theme-subtext mb-1">Nova Senha (deixe em branco para manter)</label>
@@ -786,7 +796,7 @@
     (function() {
       if (typeof google !== 'undefined' && google.script && google.script.run) return;
 
-      const API_URL = 'https://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';
+      const API_URL = 'https://script.google.com/macros/s/AKfycbzpXpxs7a_z_Y_4X9jGuKOajSpCHq17bxDZQo5Ev1fZifE_fBFtG72do33BILbAE6V2/exec';
       let tokenSessao = '';
 
       // Identificador aleatório deste aparelho (guardado no navegador): o servidor usa para não deixar
@@ -824,7 +834,7 @@
             if (typeof nome !== 'string') return undefined;
             return function() {
               const args = Array.prototype.slice.call(arguments).map(function(a) { return a === undefined ? null : a; });
-              if (nome === 'autenticarUsuario') args.push(idDispositivo());
+              if (nome === 'autenticarUsuario') { while (args.length < 3) args.push(null); args.push(idDispositivo()); }
               chamarApi(nome, args).then(function(res) {
                 if ((nome === 'autenticarUsuario' || nome === 'autenticarBiometria') && res && res.token) { tokenSessao = res.token; delete res.token; }
                 if (nome === 'logoutUsuario') tokenSessao = '';
@@ -913,6 +923,19 @@
       return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
+    const BIO_EMAIL_KEY = 'plipag_bio_email';
+    function bioEmailLocal() {
+      try { return localStorage.getItem(BIO_EMAIL_KEY) || ''; } catch (e) { return ''; }
+    }
+    function bioSalvarEmailLocal(email) {
+      try { if (email) localStorage.setItem(BIO_EMAIL_KEY, String(email).trim().toLowerCase()); } catch (e) {}
+    }
+    // E-mail usado na biometria: o guardado neste aparelho ou o digitado no formulário.
+    function bioEmailParaLogin() {
+      const campo = document.getElementById('loginUsuario');
+      return bioEmailLocal() || (campo ? campo.value.trim().toLowerCase() : '');
+    }
+
     function bioIdLocal() {
       try { return localStorage.getItem(BIO_STORAGE_KEY) || ''; } catch (e) { return ''; }
     }
@@ -923,6 +946,7 @@
 
     function bioLimparLocal() {
       try { localStorage.removeItem(BIO_STORAGE_KEY); } catch (e) {}
+      try { localStorage.removeItem(BIO_EMAIL_KEY); } catch (e) {}
       bioDesafioLogin = null;
       const bloco = document.getElementById('blocoLoginBiometria');
       if (bloco) bloco.classList.add('hidden');
@@ -1012,6 +1036,7 @@
       try {
         const u = await bioChamar('getUsuarioAtual', []);
         if (!u || !u.usuario) return;
+        bioSalvarEmailLocal(u.usuario);
         const dados = { mail: mascararUsuario(u.usuario), nome: u.nome || '', foto: userPhotoGlobal || '' };
         try { localStorage.setItem(PERFIL_RAPIDO_KEY, JSON.stringify(dados)); }
         catch (e) { dados.foto = ''; try { localStorage.setItem(PERFIL_RAPIDO_KEY, JSON.stringify(dados)); } catch (e2) {} }
@@ -1047,7 +1072,9 @@
 
     async function buscarDesafioBiometria() {
       try {
-        const r = await bioChamar('biometriaDesafio', []);
+        const emailBio = bioEmailParaLogin();
+        if (!emailBio) return null;
+        const r = await bioChamar('biometriaDesafio', [emailBio]);
         if (r && r.status === 'success') {
           bioDesafioLogin = { challenge: r.challenge, ids: r.ids || [], em: Date.now() };
           return bioDesafioLogin;
@@ -1088,7 +1115,11 @@
         bioDesafioLogin = null;
         if (!desafio) {
           bioBotaoLogin(false);
-          if (bioIdLocal() && !automatico) exibirToast('Não foi possível iniciar a biometria. Tente novamente ou use a senha.', 'erro');
+          if (!bioEmailParaLogin()) {
+            dispensarLoginRapido();   // sem e-mail guardado neste aparelho: mostra o formulário para digitá-lo
+            if (!automatico) exibirToast('Informe o e-mail cadastrado para entrar com a biometria.', 'erro');
+          }
+          else if (bioIdLocal() && !automatico) exibirToast('Não foi possível iniciar a biometria. Tente novamente ou use a senha.', 'erro');
           return;
         }
       }
@@ -1124,7 +1155,9 @@
 
       bioBotaoLogin(true, 'Autenticando...');
       const r = cred.response;
+      const emailBioLogin = bioEmailParaLogin();
       bioChamar('autenticarBiometria', [
+        emailBioLogin,
         bioBufParaB64u(cred.rawId),
         bioBufParaB64u(r.clientDataJSON),
         bioBufParaB64u(r.authenticatorData),
@@ -1133,6 +1166,7 @@
         bioBotaoLogin(false);
         if (resposta && resposta.status === 'success') {
           bioSalvarIdLocal(bioBufParaB64u(cred.rawId));
+          bioSalvarEmailLocal(emailBioLogin);
           document.getElementById('telaLogin').classList.add('hidden');
           const fabContainer = document.getElementById('fabContainer');
           if (fabContainer) fabContainer.classList.remove('hidden');
@@ -1141,6 +1175,7 @@
         } else {
           if (resposta && resposta.codigo === 'BIOMETRIA_INATIVA') bioLimparLocal();
           else buscarDesafioBiometria();
+          if (resposta && resposta.codigo === 'NAO_CADASTRADO') mostrarAvisoLogin(resposta.message);
           exibirToast((resposta && resposta.message) ? resposta.message : 'Não foi possível validar a biometria.', 'erro');
         }
       }).catch(function() {
@@ -1385,6 +1420,33 @@
       }
     }
 
+    // ----- Avisos do login (e-mail não cadastrado, primeiro acesso) -----
+    function mostrarAvisoLogin(texto, informativo) {
+      const el = document.getElementById('avisoLogin');
+      if (!el) return;
+      el.textContent = texto || '';
+      el.classList.toggle('text-rose-500', !informativo);
+      el.classList.toggle('text-emerald-600', !!informativo);
+      el.classList.toggle('hidden', !texto);
+    }
+    function limparAvisoLogin() {
+      mostrarAvisoLogin('');
+      // trocou o e-mail: volta ao formulário normal (o primeiro acesso é por e-mail)
+      const bloco = document.getElementById('blocoConfirmaSenha');
+      if (bloco && !bloco.classList.contains('hidden')) mostrarConfirmacaoSenha(false);
+    }
+    function mostrarConfirmacaoSenha(ligado) {
+      const bloco = document.getElementById('blocoConfirmaSenha');
+      if (!bloco) return;
+      bloco.classList.toggle('hidden', !ligado);
+      const campo = document.getElementById('loginSenhaConfirma');
+      if (campo) { campo.required = !!ligado; if (!ligado) campo.value = ''; }
+      const rot = document.getElementById('rotuloSenhaLogin');
+      if (rot) rot.textContent = ligado ? 'Crie sua senha' : 'Senha';
+      const btn = document.getElementById('btnLoginSubmit');
+      if (btn && !btn.disabled) btn.innerHTML = '<span>' + (ligado ? 'Cadastrar senha e acessar' : 'Acessar Conta') + '</span><i class="fa-solid fa-arrow-right"></i>';
+    }
+
     function toggleMostrarSenha() {
       const campoSenha = document.getElementById('loginSenha');
       const icone = document.getElementById('iconeOlhoSenha');
@@ -1429,7 +1491,7 @@
         }).getUsuarioAtual();
       } else {
         document.getElementById('inputPerfilNome').value = localStorage.getItem('plipag_nome') || 'Usuário PliPag';
-        document.getElementById('inputPerfilUsuario').value = localStorage.getItem('plipag_usuario') || 'admin@plipag.com';
+        document.getElementById('inputPerfilUsuario').value = localStorage.getItem('plipag_usuario') || '';
         document.getElementById('inputPerfilSenha').value = '';
         exibirFotoModalPerfil(userPhotoGlobal);
         document.getElementById('modalPerfil').classList.remove('hidden');
@@ -1497,8 +1559,8 @@
       const novaSenha = document.getElementById('inputPerfilSenha').value;
       const btn = document.getElementById('btnSalvarPerfil');
 
-      if (!novoNome || !novoUsuario) {
-        exibirToast("Preencha o nome do usuário e o e-mail/usuário.", "erro");
+      if (!novoNome) {
+        exibirToast("Preencha o nome do usuário.", "erro");
         return;
       }
 
@@ -1527,10 +1589,9 @@
             btn.innerText = "Salvar Alterações";
             exibirToast("Erro de comunicação com o servidor.", "erro");
           })
-          .atualizarPerfilUsuario(novoNome, novoUsuario, novaSenha, userPhotoGlobal);
+          .atualizarPerfilUsuario(novoNome, null, novaSenha, userPhotoGlobal);   // e-mail cadastrado não é alterável
       } else {
         localStorage.setItem('plipag_nome', novoNome);
-        localStorage.setItem('plipag_usuario', novoUsuario);
         localStorage.setItem('plipag_user_photo', userPhotoGlobal);
         btn.disabled = false;
         btn.innerText = "Salvar Alterações";
@@ -1568,10 +1629,18 @@
       if (event) event.preventDefault();
       const usuario = document.getElementById('loginUsuario').value.trim().toLowerCase();
       const senhaPura = document.getElementById('loginSenha').value;
+      const blocoConf = document.getElementById('blocoConfirmaSenha');
+      const emPrimeiroAcesso = blocoConf && !blocoConf.classList.contains('hidden');
+      const confirmacao = emPrimeiroAcesso ? document.getElementById('loginSenhaConfirma').value : null;
       const btn = document.getElementById('btnLoginSubmit');
 
+      limparAvisoLogin();
       if (!usuario || !senhaPura) {
-        exibirToast("Preencha o usuário e a senha.", "erro");
+        exibirToast("Preencha o e-mail e a senha.", "erro");
+        return;
+      }
+      if (emPrimeiroAcesso && confirmacao !== senhaPura) {
+        exibirToast("A confirmação não confere com a senha digitada.", "erro");
         return;
       }
 
@@ -1593,13 +1662,23 @@
             btn.disabled = false;
             btn.innerHTML = '<span>Acessar Conta</span><i class="fa-solid fa-arrow-right"></i>';
             if (resposta && resposta.status === 'success') {
+              bioSalvarEmailLocal(usuario);
+              mostrarConfirmacaoSenha(false);
+              document.getElementById('loginSenhaConfirma').value = '';
               document.getElementById('telaLogin').classList.add('hidden');
               const fabContainer = document.getElementById('fabContainer');
               if (fabContainer) fabContainer.classList.remove('hidden');
-              exibirToast("Login realizado com sucesso!", "sucesso");
+              exibirToast(resposta.primeiroAcesso ? "Senha cadastrada! Bem-vindo ao PliPag." : "Login realizado com sucesso!", "sucesso");
               carregarDados();
+            } else if (resposta && resposta.status === 'primeiro_acesso') {
+              mostrarConfirmacaoSenha(true);
+              mostrarAvisoLogin(resposta.message, true);
+              document.getElementById('loginSenhaConfirma').focus();
             } else {
-              exibirToast((resposta && resposta.message) ? resposta.message : "Usuário ou senha incorretos.", "erro");
+              if (resposta && resposta.codigo === 'NAO_CADASTRADO') mostrarConfirmacaoSenha(false);
+              const msg = (resposta && resposta.message) ? resposta.message : "E-mail ou senha incorretos.";
+              mostrarAvisoLogin(msg);
+              exibirToast(msg, "erro");
             }
           })
           .withFailureHandler(function(err) {
@@ -4269,4 +4348,3 @@
 </script>
 </body>
 </html>
-
