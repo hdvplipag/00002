@@ -78,10 +78,6 @@
     .pdf-render .print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
     .pdf-render .print-table th { background: #0f172a; color: #fff; padding: 8px; text-align: left; text-transform: uppercase; font-size: 10px; }
     .pdf-render .print-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
-    .pdf-render .print-header-cont { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 10px; }
-    .pdf-render .print-header-cont h1 { margin: 0; font-size: 15px; color: #0f172a; }
-    .pdf-render .print-header-cont p { margin: 2px 0 0; font-size: 10px; color: #64748b; }
-    .pdf-render .pdf-page { box-sizing: border-box; overflow: hidden; background: #ffffff; }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { background-color: rgba(255, 255, 255, 0.15); }
     
@@ -2300,108 +2296,174 @@
       });
     }
 
-    // Monta o relatório em páginas A4 de tamanho fixo. Em TODAS as páginas aparecem o título do relatório
-    // (na 1ª, o cabeçalho completo; nas demais, uma faixa compacta) e a linha de títulos da tabela
-    // (TIPO, DESCRIÇÃO, CATEGORIA, DATA, VALOR, PAGTO). Devolve { paginas: [elementos], limpar() }.
-    async function montarPaginasPdf(origem) {
-      const W = 800;                                   // largura de cada página, em px
-      const H = Math.floor(W * 281 / 194 * 0.94);      // altura útil (A4 com margem de 8 mm) com folga
-      const area = document.createElement('div');
-      area.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + W + 'px;';
-      document.body.appendChild(area);
-      const limpar = function() { if (area.parentNode) area.parentNode.removeChild(area); };
-      try {
-        const cab = origem.querySelector('.print-header');
-        const cards = origem.querySelector('.print-cards');
-        const charts = origem.querySelector('.print-charts-grid');
-        const theadOrig = origem.querySelector('.print-table thead');
-        const linhasOrig = Array.from(origem.querySelectorAll('.print-table tbody tr'));
-        const totalOrig = origem.querySelector('.print-total-lanc');
-        if (!cab || !theadOrig || linhasOrig.length === 0) throw new Error('sem tabela');
+    // ---------- PDF do relatório desenhado direto (texto vetorial, sem depender da largura da tela) ----------
+    function carregarJsPdf() {
+      return new Promise((resolve, reject) => {
+        if (window.jspdf && window.jspdf.jsPDF) return resolve();
+        const sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        sc.onload = () => (window.jspdf && window.jspdf.jsPDF) ? resolve() : reject(new Error('jsPDF indisponível'));
+        sc.onerror = () => reject(new Error('falha ao carregar'));
+        document.head.appendChild(sc);
+      });
+    }
 
-        const medida = document.createElement('div');
-        medida.className = 'pdf-render';
-        medida.style.width = W + 'px';
-        area.appendChild(medida);
+    function corRgb(c, padrao) {
+      const m = String(c || '').match(/#([0-9a-f]{6})/i);
+      if (!m) return padrao;
+      return [parseInt(m[1].substr(0, 2), 16), parseInt(m[1].substr(2, 2), 16), parseInt(m[1].substr(4, 2), 16)];
+    }
 
-        function novoCabCont() {
-          const c = cab.cloneNode(true);
-          c.className = 'print-header-cont';
-          return c;
-        }
-        // blocos medidos (com margens: display:flow-root)
-        const blocoTopo = document.createElement('div');
-        blocoTopo.style.display = 'flow-root';
-        [cab, cards, charts].forEach(function(e) { if (e) blocoTopo.appendChild(e.cloneNode(true)); });
-        const blocoCont = document.createElement('div');
-        blocoCont.style.display = 'flow-root';
-        blocoCont.appendChild(novoCabCont());
-        const blocoTotal = document.createElement('div');
-        blocoTotal.style.display = 'flow-root';
-        if (totalOrig) blocoTotal.appendChild(totalOrig.cloneNode(true));
-        const tabMed = document.createElement('table');
-        tabMed.className = 'print-table';
-        tabMed.appendChild(theadOrig.cloneNode(true));
-        const tbMed = document.createElement('tbody');
-        linhasOrig.forEach(function(r) { tbMed.appendChild(r.cloneNode(true)); });
-        tabMed.appendChild(tbMed);
-        [blocoTopo, blocoCont, blocoTotal, tabMed].forEach(function(e) { medida.appendChild(e); });
+    // As fontes padrão do PDF só têm caracteres latinos: troca o que não existir por "?"
+    function textoPdf(t) {
+      return String(t === null || t === undefined ? '' : t).replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+        .replace(/[–—]/g, '-').replace(/\s+/g, ' ').replace(/[^ -~ -ÿ]/g, '?').trim();
+    }
 
-        // as imagens dos gráficos precisam estar carregadas para medir a altura certa
-        await Promise.all(Array.from(medida.querySelectorAll('img')).map(function(img) {
-          return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
-        }));
-
-        const hTopo = blocoTopo.getBoundingClientRect().height;
-        const hCont = blocoCont.getBoundingClientRect().height;
-        const hTotal = blocoTotal.getBoundingClientRect().height + 12;
-        const hHead = tabMed.querySelector('thead').getBoundingClientRect().height;
-        const alturas = Array.from(tbMed.children).map(function(tr) { return tr.getBoundingClientRect().height; });
-        const FOLGA = 8;
-
-        // distribui as linhas pelas páginas
-        const paginasLinhas = [];
-        let atual = [], usado = 0, disp = H - hTopo - hHead - FOLGA;
-        alturas.forEach(function(h, i) {
-          if (usado + h > disp && atual.length) {
-            paginasLinhas.push(atual); atual = []; usado = 0; disp = H - hCont - hHead - FOLGA;
-          }
-          atual.push(i); usado += h;
-        });
-        let temTotalSozinho = false;
-        if (usado + hTotal > disp) {                      // o "Total de lançamentos" tem de caber na última página
-          if (atual.length > 1) { const ult = atual.pop(); paginasLinhas.push(atual); atual = [ult]; }
-          else { paginasLinhas.push(atual); atual = []; temTotalSozinho = true; }
-        }
-        paginasLinhas.push(atual);
-
-        // monta as páginas finais
-        const paginas = [];
-        paginasLinhas.forEach(function(idxs, n) {
-          const pg = document.createElement('div');
-          pg.className = 'pdf-render pdf-page';
-          pg.style.cssText = 'width:' + W + 'px;height:' + H + 'px;';
-          if (n === 0) { [cab, cards, charts].forEach(function(e) { if (e) pg.appendChild(e.cloneNode(true)); }); }
-          else pg.appendChild(novoCabCont());
-          if (idxs.length) {
-            const t = document.createElement('table');
-            t.className = 'print-table';
-            t.appendChild(theadOrig.cloneNode(true));
-            const tb = document.createElement('tbody');
-            idxs.forEach(function(i) { tb.appendChild(linhasOrig[i].cloneNode(true)); });
-            t.appendChild(tb);
-            pg.appendChild(t);
-          }
-          if (n === paginasLinhas.length - 1 && totalOrig) pg.appendChild(totalOrig.cloneNode(true));
-          area.appendChild(pg);
-          paginas.push(pg);
-        });
-        area.removeChild(medida);
-        return { paginas: paginas, limpar: limpar, altura: H };
-      } catch (e) {
-        limpar();
-        throw e;
+    // Gera o PDF a partir do relatório montado em #printAreaContainer.
+    // Em TODAS as páginas: título do relatório e a linha de títulos da tabela (TIPO, DESCRIÇÃO...).
+    async function gerarPdfVetorial() {
+      await carregarJsPdf();
+      const origem = document.getElementById('printAreaContainer');
+      const tituloRel = textoPdf((origem.querySelector('.print-header h1') || {}).textContent) || 'PliPag - Relatório Financeiro';
+      const periodoRel = textoPdf((origem.querySelector('.print-header p') || {}).textContent);
+      const cartoes = Array.from(origem.querySelectorAll('.print-card')).map(function(c) {
+        const v = c.querySelector('.print-card-val');
+        return { titulo: textoPdf((c.querySelector('.print-card-title') || {}).textContent), valor: textoPdf(v && v.textContent), cor: corRgb(v && v.getAttribute('style'), [15, 23, 42]) };
+      });
+      const graficos = [];
+      for (const box of Array.from(origem.querySelectorAll('.print-chart-box'))) {
+        const img = box.querySelector('img');
+        if (img && img.src) { try { if (img.decode) await img.decode(); } catch (e) {} }
+        graficos.push({ titulo: textoPdf((box.querySelector('h4') || {}).textContent), src: img && img.src ? img.src : '', w: img ? img.naturalWidth : 0, h: img ? img.naturalHeight : 0 });
       }
+      const linhas = Array.from(origem.querySelectorAll('.print-table tbody tr')).map(function(tr) {
+        const td = Array.from(tr.children);
+        if (td.length < 6) return null;
+        return {
+          tipo: textoPdf(td[0].textContent), desc: textoPdf(td[1].textContent), cat: textoPdf(td[2].textContent),
+          data: textoPdf(td[3].textContent), valor: textoPdf(td[4].textContent), pagto: textoPdf(td[5].textContent),
+          cor: corRgb(td[0].getAttribute('style'), [15, 23, 42])
+        };
+      }).filter(Boolean);
+      const totalTxt = textoPdf((origem.querySelector('.print-total-lanc') || {}).textContent) || ('Total de lançamentos: ' + linhas.length);
+
+      const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+      const PW = 210, PH = 297, M = 12, LARG = PW - 2 * M, FIM = PH - 14;   // FIM = limite inferior (deixa espaço p/ número da página)
+      const col = [{ t: 'TIPO', w: 17 }, { t: 'DESCRIÇÃO', w: 66 }, { t: 'CATEGORIA', w: 30 }, { t: 'DATA', w: 22 }, { t: 'VALOR', w: 22 }, { t: 'PAGTO', w: LARG - 157 }];
+      let y = M;
+
+      function cabecalhoCompleto() {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(15, 23, 42);
+        doc.text(tituloRel, PW / 2, y + 6, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100, 116, 139);
+        doc.text(periodoRel, PW / 2, y + 11.5, { align: 'center', maxWidth: LARG });
+        doc.setDrawColor(15, 23, 42); doc.setLineWidth(0.5); doc.line(M, y + 14.5, PW - M, y + 14.5);
+        y += 20;
+      }
+      function cabecalhoCompacto() {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 23, 42);
+        doc.text(tituloRel, PW / 2, y + 4.5, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+        doc.text(periodoRel, PW / 2, y + 9, { align: 'center', maxWidth: LARG });
+        doc.setDrawColor(15, 23, 42); doc.setLineWidth(0.4); doc.line(M, y + 11, PW - M, y + 11);
+        y += 15;
+      }
+      function titulosTabela() {
+        doc.setFillColor(15, 23, 42); doc.rect(M, y, LARG, 7, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(255, 255, 255);
+        let x = M;
+        col.forEach(function(c, i) {
+          if (i === 4) doc.text(c.t, x + c.w - 2, y + 4.7, { align: 'right' });
+          else doc.text(c.t, x + 2, y + 4.7);
+          x += c.w;
+        });
+        y += 7;
+      }
+      function novaPagina() {
+        doc.addPage(); y = M;
+        cabecalhoCompacto();
+        titulosTabela();
+      }
+
+      // ----- 1ª página: cabeçalho, cartões e gráficos -----
+      cabecalhoCompleto();
+      if (cartoes.length) {
+        const gap = 4, cw = (LARG - gap * (cartoes.length - 1)) / cartoes.length;
+        cartoes.forEach(function(c, i) {
+          const x = M + i * (cw + gap);
+          doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.roundedRect(x, y, cw, 16, 2, 2, 'S');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(100, 116, 139);
+          doc.text(c.titulo.toUpperCase(), x + cw / 2, y + 5.5, { align: 'center' });
+          doc.setFontSize(12); doc.setTextColor(c.cor[0], c.cor[1], c.cor[2]);
+          doc.text(c.valor, x + cw / 2, y + 12, { align: 'center' });
+        });
+        y += 21;
+      }
+      if (graficos.length) {
+        const gap = 4, cw = (LARG - gap * (graficos.length - 1)) / graficos.length, ALT = 52;
+        graficos.forEach(function(g, i) {
+          const x = M + i * (cw + gap);
+          doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3); doc.roundedRect(x, y, cw, ALT, 2, 2, 'S');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(51, 65, 85);
+          doc.text(g.titulo, x + cw / 2, y + 5, { align: 'center' });
+          if (g.src && g.w > 0 && g.h > 0) {
+            const maxW = cw - 4, maxH = ALT - 10;
+            let w = maxW, h = w * g.h / g.w;
+            if (h > maxH) { h = maxH; w = h * g.w / g.h; }
+            try { doc.addImage(g.src, 'PNG', x + (cw - w) / 2, y + 7 + (maxH - h) / 2, w, h); } catch (e) {}
+          }
+        });
+        y += ALT + 6;
+      }
+      titulosTabela();
+
+      // ----- linhas da tabela -----
+      const LH = 3.6;   // altura de cada linha de texto
+      if (!linhas.length) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100, 116, 139);
+        doc.text('Nenhum registro.', PW / 2, y + 6, { align: 'center' }); y += 10;
+      }
+      linhas.forEach(function(r) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+        let desc = doc.splitTextToSize(r.desc, col[1].w - 4);
+        if (desc.length > 2) { desc = desc.slice(0, 2); desc[1] = desc[1].replace(/.{0,2}$/, '') + '...'; }
+        let pagto = doc.splitTextToSize(r.pagto, col[5].w - 3);
+        if (pagto.length > 2) pagto = pagto.slice(0, 2);
+        const n = Math.max(desc.length, pagto.length, 1);
+        const h = Math.max(6.4, n * LH + 3);
+        if (y + h > FIM) novaPagina();
+        const baseY = y + (h - n * LH) / 2 + 2.6;
+        let x = M;
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(r.cor[0], r.cor[1], r.cor[2]);
+        doc.text(r.tipo, x + 2, y + h / 2 + 1);
+        x += col[0].w;
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(15, 23, 42);
+        doc.text(desc, x + 2, baseY); x += col[1].w;
+        doc.text(doc.splitTextToSize(r.cat, col[2].w - 3).slice(0, 1), x + 2, y + h / 2 + 1); x += col[2].w;
+        doc.text(r.data, x + 2, y + h / 2 + 1); x += col[3].w;
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(r.cor[0], r.cor[1], r.cor[2]);
+        doc.text(r.valor, x + col[4].w - 2, y + h / 2 + 1, { align: 'right' }); x += col[4].w;
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(15, 23, 42);
+        doc.text(pagto, x + 2, baseY);
+        doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2); doc.line(M, y + h, PW - M, y + h);
+        y += h;
+      });
+
+      // ----- total -----
+      if (y + 12 > FIM) novaPagina();
+      doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(M, y + 4, PW - M, y + 4);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(15, 23, 42);
+      doc.text(totalTxt, M, y + 9.5);
+
+      // ----- numeração das páginas -----
+      const total = doc.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+        doc.text('Página ' + i + ' de ' + total, PW / 2, PH - 7, { align: 'center' });
+      }
+      return doc.output('blob');
     }
 
     // O PDF é gerado primeiro; só depois de pronto aparece a janela com os botões de enviar/salvar.
@@ -2416,7 +2478,6 @@
       botoes.forEach(function(b) { b.disabled = true; });
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Gerando...</span>';
       try {
-        await carregarHtml2Pdf();
         const nome = `relatorio_plipag_${dataLocalISO()}.pdf`;
         const opcoesPdf = {
           margin: 8, filename: nome,
@@ -2427,24 +2488,14 @@
           pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
         };
         let blob = null;
-        let doc = null;
         try {
-          // Uma página A4 por vez, cada uma com título e linha de títulos da tabela
-          doc = await montarPaginasPdf(document.getElementById('printAreaContainer'));
-          let trabalho = html2pdf().set(opcoesPdf);
-          doc.paginas.forEach(function(pg, i) {
-            trabalho = trabalho.from(pg).toContainer().toCanvas().toPdf().get('pdf').then(function(pdf) {
-              if (i < doc.paginas.length - 1) pdf.addPage();
-            });
-          });
-          blob = await trabalho.outputPdf('blob');
+          blob = await gerarPdfVetorial();
         } catch (e) {
           blob = null;
-        } finally {
-          if (doc) doc.limpar();
         }
         if (!blob) {
-          // Reserva: relatório contínuo (sem repetir o cabeçalho). Cópia própria: a área da tela é "fixed" e tem altura limitada.
+          // Reserva (se o PDF direto falhar): relatório contínuo a partir da tela, sem repetir o cabeçalho.
+          await carregarHtml2Pdf();
           const alvo = document.createElement('div');
           alvo.className = 'pdf-render';
           alvo.innerHTML = document.getElementById('printAreaContainer').innerHTML;
@@ -2841,7 +2892,19 @@
       resumoAtual = { receitas: totalReceitas, despesas: totalDespesas, maiorCategoria: maiorCat };
 
       renderizarTabelaLote(transacoes);
-      renderizarDadosGraficos(categoriasMap, formaPagtoMap, totalReceitas, totalDespesas);
+      // Tendência: receitas e despesas mês a mês (ano mais recente dos lançamentos listados)
+      const serieRec = new Array(12).fill(0), serieDesp = new Array(12).fill(0);
+      let anoTend = new Date().getFullYear();
+      const baseTend = (typeof listaTransacoesGlobal !== 'undefined' && listaTransacoesGlobal && listaTransacoesGlobal.length) ? listaTransacoesGlobal : (transacoes || []);
+      const datas = baseTend.map(t => String(t.date || '').match(/^(\d{4})-(\d{2})/)).filter(Boolean);
+      if (datas.length) anoTend = Math.max.apply(null, datas.map(m => +m[1]));
+      baseTend.forEach(t => {
+        const m = String(t.date || '').match(/^(\d{4})-(\d{2})/);
+        if (!m || +m[1] !== anoTend) return;
+        const v = Number(t.amount) || 0, i = +m[2] - 1;
+        if ((t.type || '').trim().toLowerCase() === 'receita') serieRec[i] += v; else serieDesp[i] += v;
+      });
+      renderizarDadosGraficos(categoriasMap, formaPagtoMap, totalReceitas, totalDespesas, serieRec, serieDesp);
     }
 
     // Só lançamentos do mês vigente podem ser alterados ou excluídos (o servidor também confere).
@@ -2917,7 +2980,7 @@
       }
     }
 
-    function renderizarDadosGraficos(categoriasMap, formaPagtoMap, receitas, despesas) {
+    function renderizarDadosGraficos(categoriasMap, formaPagtoMap, receitas, despesas, serieRec, serieDesp) {
       const isDark = currentTheme === 'dark';
       const subtextColor = isDark ? '#94a3b8' : '#475569';
       const gridColor = isDark ? '#1e293b' : '#e2e8f0';
@@ -2984,8 +3047,8 @@
         data: {
           labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
           datasets: [
-            { label: 'Receitas', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false },
-            { label: 'Despesas', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false }
+            { label: 'Receitas', data: serieRec || [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false },
+            { label: 'Despesas', data: serieDesp || [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false }
           ]
         },
         options: {
