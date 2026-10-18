@@ -78,6 +78,10 @@
     .pdf-render .print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
     .pdf-render .print-table th { background: #0f172a; color: #fff; padding: 8px; text-align: left; text-transform: uppercase; font-size: 10px; }
     .pdf-render .print-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+    .pdf-render .print-header-cont { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 10px; }
+    .pdf-render .print-header-cont h1 { margin: 0; font-size: 15px; color: #0f172a; }
+    .pdf-render .print-header-cont p { margin: 2px 0 0; font-size: 10px; color: #64748b; }
+    .pdf-render .pdf-page { box-sizing: border-box; overflow: hidden; background: #ffffff; }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { background-color: rgba(255, 255, 255, 0.15); }
     
@@ -376,7 +380,7 @@
 
       <div class="glass-panel p-5 rounded-2xl border border-slate-800">
         <div class="flex items-center justify-between theme-subtext mb-2">
-          <span class="text-xs font-semibold uppercase tracking-wider">Receitas</span>
+          <span class="text-xs font-semibold uppercase tracking-wider">Receita</span>
           <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i class="fa-solid fa-arrow-trend-up text-sm"></i></div>
         </div>
         <div id="cardReceitas" class="text-3xl font-extrabold text-emerald-500">R$ 0,00</div>
@@ -389,7 +393,7 @@
       <div class="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between theme-subtext mb-2">
-            <span class="text-xs font-semibold uppercase tracking-wider">Despesas</span>
+            <span class="text-xs font-semibold uppercase tracking-wider">Despesa</span>
             <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-arrow-trend-down text-sm"></i></div>
           </div>
           <div id="cardDespesas" class="text-3xl font-extrabold text-rose-500">R$ 0,00</div>
@@ -2243,8 +2247,8 @@
           <p><strong>Período:</strong> ${periodoTxt} | <strong>Gerado em:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
         </div>
         <div class="print-cards">
-          <div class="print-card"><div class="print-card-title">Receitas</div><div class="print-card-val" style="color: #10b981;">R$ ${totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
-          <div class="print-card"><div class="print-card-title">Despesas</div><div class="print-card-val" style="color: #f43f5e;">R$ ${totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
+          <div class="print-card"><div class="print-card-title">Receita</div><div class="print-card-val" style="color: #10b981;">R$ ${totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
+          <div class="print-card"><div class="print-card-title">Despesa</div><div class="print-card-val" style="color: #f43f5e;">R$ ${totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
           <div class="print-card"><div class="print-card-title">Saldo</div><div class="print-card-val" style="color: ${saldoTotal >= 0 ? '#10b981' : '#f43f5e'};">R$ ${saldoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
         </div>
         <div class="print-charts-grid">
@@ -2296,6 +2300,110 @@
       });
     }
 
+    // Monta o relatório em páginas A4 de tamanho fixo. Em TODAS as páginas aparecem o título do relatório
+    // (na 1ª, o cabeçalho completo; nas demais, uma faixa compacta) e a linha de títulos da tabela
+    // (TIPO, DESCRIÇÃO, CATEGORIA, DATA, VALOR, PAGTO). Devolve { paginas: [elementos], limpar() }.
+    async function montarPaginasPdf(origem) {
+      const W = 800;                                   // largura de cada página, em px
+      const H = Math.floor(W * 281 / 194 * 0.94);      // altura útil (A4 com margem de 8 mm) com folga
+      const area = document.createElement('div');
+      area.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + W + 'px;';
+      document.body.appendChild(area);
+      const limpar = function() { if (area.parentNode) area.parentNode.removeChild(area); };
+      try {
+        const cab = origem.querySelector('.print-header');
+        const cards = origem.querySelector('.print-cards');
+        const charts = origem.querySelector('.print-charts-grid');
+        const theadOrig = origem.querySelector('.print-table thead');
+        const linhasOrig = Array.from(origem.querySelectorAll('.print-table tbody tr'));
+        const totalOrig = origem.querySelector('.print-total-lanc');
+        if (!cab || !theadOrig || linhasOrig.length === 0) throw new Error('sem tabela');
+
+        const medida = document.createElement('div');
+        medida.className = 'pdf-render';
+        medida.style.width = W + 'px';
+        area.appendChild(medida);
+
+        function novoCabCont() {
+          const c = cab.cloneNode(true);
+          c.className = 'print-header-cont';
+          return c;
+        }
+        // blocos medidos (com margens: display:flow-root)
+        const blocoTopo = document.createElement('div');
+        blocoTopo.style.display = 'flow-root';
+        [cab, cards, charts].forEach(function(e) { if (e) blocoTopo.appendChild(e.cloneNode(true)); });
+        const blocoCont = document.createElement('div');
+        blocoCont.style.display = 'flow-root';
+        blocoCont.appendChild(novoCabCont());
+        const blocoTotal = document.createElement('div');
+        blocoTotal.style.display = 'flow-root';
+        if (totalOrig) blocoTotal.appendChild(totalOrig.cloneNode(true));
+        const tabMed = document.createElement('table');
+        tabMed.className = 'print-table';
+        tabMed.appendChild(theadOrig.cloneNode(true));
+        const tbMed = document.createElement('tbody');
+        linhasOrig.forEach(function(r) { tbMed.appendChild(r.cloneNode(true)); });
+        tabMed.appendChild(tbMed);
+        [blocoTopo, blocoCont, blocoTotal, tabMed].forEach(function(e) { medida.appendChild(e); });
+
+        // as imagens dos gráficos precisam estar carregadas para medir a altura certa
+        await Promise.all(Array.from(medida.querySelectorAll('img')).map(function(img) {
+          return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+        }));
+
+        const hTopo = blocoTopo.getBoundingClientRect().height;
+        const hCont = blocoCont.getBoundingClientRect().height;
+        const hTotal = blocoTotal.getBoundingClientRect().height + 12;
+        const hHead = tabMed.querySelector('thead').getBoundingClientRect().height;
+        const alturas = Array.from(tbMed.children).map(function(tr) { return tr.getBoundingClientRect().height; });
+        const FOLGA = 8;
+
+        // distribui as linhas pelas páginas
+        const paginasLinhas = [];
+        let atual = [], usado = 0, disp = H - hTopo - hHead - FOLGA;
+        alturas.forEach(function(h, i) {
+          if (usado + h > disp && atual.length) {
+            paginasLinhas.push(atual); atual = []; usado = 0; disp = H - hCont - hHead - FOLGA;
+          }
+          atual.push(i); usado += h;
+        });
+        let temTotalSozinho = false;
+        if (usado + hTotal > disp) {                      // o "Total de lançamentos" tem de caber na última página
+          if (atual.length > 1) { const ult = atual.pop(); paginasLinhas.push(atual); atual = [ult]; }
+          else { paginasLinhas.push(atual); atual = []; temTotalSozinho = true; }
+        }
+        paginasLinhas.push(atual);
+
+        // monta as páginas finais
+        const paginas = [];
+        paginasLinhas.forEach(function(idxs, n) {
+          const pg = document.createElement('div');
+          pg.className = 'pdf-render pdf-page';
+          pg.style.cssText = 'width:' + W + 'px;height:' + H + 'px;';
+          if (n === 0) { [cab, cards, charts].forEach(function(e) { if (e) pg.appendChild(e.cloneNode(true)); }); }
+          else pg.appendChild(novoCabCont());
+          if (idxs.length) {
+            const t = document.createElement('table');
+            t.className = 'print-table';
+            t.appendChild(theadOrig.cloneNode(true));
+            const tb = document.createElement('tbody');
+            idxs.forEach(function(i) { tb.appendChild(linhasOrig[i].cloneNode(true)); });
+            t.appendChild(tb);
+            pg.appendChild(t);
+          }
+          if (n === paginasLinhas.length - 1 && totalOrig) pg.appendChild(totalOrig.cloneNode(true));
+          area.appendChild(pg);
+          paginas.push(pg);
+        });
+        area.removeChild(medida);
+        return { paginas: paginas, limpar: limpar, altura: H };
+      } catch (e) {
+        limpar();
+        throw e;
+      }
+    }
+
     // O PDF é gerado primeiro; só depois de pronto aparece a janela com os botões de enviar/salvar.
     let pdfGerado = null;   // { blob, arquivo, nome, modo }
 
@@ -2309,19 +2417,39 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Gerando...</span>';
       try {
         await carregarHtml2Pdf();
-        // Cópia própria do relatório: a área da tela é "fixed" e tem altura limitada, o que deixava o PDF em branco.
-        const alvo = document.createElement('div');
-        alvo.className = 'pdf-render';
-        alvo.innerHTML = document.getElementById('printAreaContainer').innerHTML;
         const nome = `relatorio_plipag_${dataLocalISO()}.pdf`;
-        const blob = await html2pdf().from(alvo).set({
+        const opcoesPdf = {
           margin: 8, filename: nome,
           image: { type: 'jpeg', quality: 0.95 },
           // iPhone/iPad limitam o tamanho da imagem (canvas); escala menor evita falha em relatórios longos
           html2canvas: { scale: ehDispositivoIOS() ? 1.4 : 2, useCORS: true, scrollX: 0, scrollY: 0, windowWidth: 800, backgroundColor: '#ffffff' },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
-        }).outputPdf('blob');
+        };
+        let blob = null;
+        let doc = null;
+        try {
+          // Uma página A4 por vez, cada uma com título e linha de títulos da tabela
+          doc = await montarPaginasPdf(document.getElementById('printAreaContainer'));
+          let trabalho = html2pdf().set(opcoesPdf);
+          doc.paginas.forEach(function(pg, i) {
+            trabalho = trabalho.from(pg).toContainer().toCanvas().toPdf().get('pdf').then(function(pdf) {
+              if (i < doc.paginas.length - 1) pdf.addPage();
+            });
+          });
+          blob = await trabalho.outputPdf('blob');
+        } catch (e) {
+          blob = null;
+        } finally {
+          if (doc) doc.limpar();
+        }
+        if (!blob) {
+          // Reserva: relatório contínuo (sem repetir o cabeçalho). Cópia própria: a área da tela é "fixed" e tem altura limitada.
+          const alvo = document.createElement('div');
+          alvo.className = 'pdf-render';
+          alvo.innerHTML = document.getElementById('printAreaContainer').innerHTML;
+          blob = await html2pdf().from(alvo).set(opcoesPdf).outputPdf('blob');
+        }
         pdfGerado = { blob: blob, arquivo: new File([blob], nome, { type: 'application/pdf' }), nome: nome, modo: imprimir ? 'imprimir' : 'pdf' };
         mostrarModalPdfPronto();
       } catch (e) {
