@@ -801,7 +801,7 @@
       if (typeof google !== 'undefined' && google.script && google.script.run) return;
 
       // URL do Apps Script: a mesma registrada em usuarios.gs (PLIPAG_URL_APPS_SCRIPT). Se mudar, atualize nos dois.
-      const API_URL = 'https://script.google.com/macros/s/AKfycbzpXpxs7a_z_Y_4X9jGuKOajSpCHq17bxDZQo5Ev1fZifE_fBFtG72do33BILbAE6V2/exec';
+      const API_URL = 'https://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';
       let tokenSessao = '';
 
       // Identificador aleatório deste aparelho (guardado no navegador): o servidor usa para não deixar
@@ -2883,6 +2883,13 @@
     }
 
     const TEMPO_MENSAGEM_SALVAR_MS = 10000;   // quanto tempo a mensagem de gravação do lançamento fica na tela
+    // Depois de salvar um lançamento, volta ao topo da página, onde fica o Saldo Consolidado.
+    function rolarParaSaldo() {
+      setTimeout(function() {
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+      }, 60);
+    }
+
     function salvarLancamento(event, outroLancamento) {
       if (event) event.preventDefault();
       const porVoz = formularioPorVoz;
@@ -2918,6 +2925,7 @@
             btnSalvar.innerText = "Salvar";
             fecharModalNovaTransacao();
             carregarDados();
+            rolarParaSaldo();
             exibirToast("Lançamento salvo com sucesso!", "sucesso", TEMPO_MENSAGEM_SALVAR_MS);
             if (outroLancamento === 'sim') { if (porVoz) abrirModalVoz(); else abrirModalNovaTransacao(); }
           })
@@ -2945,6 +2953,7 @@
         fecharModalNovaTransacao();
         atualizarOpcoesCategorias(listaTransacoesGlobal);
         renderizarDados(obterTransacoesFiltradas());
+        rolarParaSaldo();
         exibirToast("Lançamento salvo!", "sucesso", TEMPO_MENSAGEM_SALVAR_MS);
         if (outroLancamento === 'sim') { if (porVoz) abrirModalVoz(); else abrirModalNovaTransacao(); }
       }
