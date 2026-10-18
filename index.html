@@ -796,6 +796,7 @@
     (function() {
       if (typeof google !== 'undefined' && google.script && google.script.run) return;
 
+      // URL do Apps Script: a mesma registrada em usuarios.gs (PLIPAG_URL_APPS_SCRIPT). Se mudar, atualize nos dois.
       const API_URL = 'https://script.google.com/macros/s/AKfycbzpXpxs7a_z_Y_4X9jGuKOajSpCHq17bxDZQo5Ev1fZifE_fBFtG72do33BILbAE6V2/exec';
       let tokenSessao = '';
 
