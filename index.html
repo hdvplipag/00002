@@ -797,7 +797,7 @@
       if (typeof google !== 'undefined' && google.script && google.script.run) return;
 
       // URL do Apps Script: a mesma registrada em usuarios.gs (PLIPAG_URL_APPS_SCRIPT). Se mudar, atualize nos dois.
-      const API_URL = 'https://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';                       
+      const API_URL = 'https://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';
       let tokenSessao = '';
 
       // Identificador aleatório deste aparelho (guardado no navegador): o servidor usa para não deixar
@@ -1688,7 +1688,7 @@
             btn.innerHTML = '<span>Acessar Conta</span><i class="fa-solid fa-arrow-right"></i>';
             exibirToast("Erro na comunicação com o servidor.", "erro");
           })
-          .autenticarUsuario(usuario, senhaPura);
+          .autenticarUsuario(usuario, senhaPura, confirmacao);
       } else {
         setTimeout(() => {
           clearTimeout(timerSeguranca);
