@@ -2103,8 +2103,8 @@
         ? `Limpar ${filtrados.length} lançamento${filtrados.length === 1 ? '' : 's'} do filtro?`
         : 'Limpar todos os lançamentos?';
       document.getElementById('textoLimpar').innerText = comFiltro
-        ? 'Somente os lançamentos exibidos no filtro atual serão apagados e esta ação não pode ser desfeita. Se precisar, use Exportar antes.'
-        : 'Todos os lançamentos da planilha serão apagados e esta ação não pode ser desfeita. Se precisar, use Exportar antes.';
+        ? 'Somente os lançamentos exibidos no filtro atual serão apagados (os de meses anteriores são mantidos) e esta ação não pode ser desfeita. Se precisar, use Exportar antes.'
+        : 'Serão apagados os lançamentos do mês vigente (e futuros). Os de meses anteriores são mantidos. Esta ação não pode ser desfeita. Se precisar, use Exportar antes.';
       if (comFiltro && filtrados.length === 0) { exibirToast("Nenhum lançamento no filtro atual.", "erro"); return; }
       const inp = document.getElementById('inputConfirmarLimpar');
       inp.value = '';
@@ -2121,17 +2121,20 @@
       fecharModalLimparLancamentos();
       const ids = idsLimpar;
       const runner = google.script.run
-        .withSuccessHandler(function() {
+        .withSuccessHandler(function(r) {
+          const preservados = (r && r.preservados) || 0;
           if (ids) {
             const set = new Set(ids);
-            listaTransacoesGlobal = listaTransacoesGlobal.filter(t => !set.has(String(t.id)));
+            listaTransacoesGlobal = listaTransacoesGlobal.filter(t => !set.has(String(t.id)) || lancamentoMesPassado(t.date));
           } else {
-            listaTransacoesGlobal = [];
+            listaTransacoesGlobal = listaTransacoesGlobal.filter(t => lancamentoMesPassado(t.date));
           }
           atualizarOpcoesCategorias(listaTransacoesGlobal);
           renderizarDados(obterTransacoesFiltradas());
           carregarDados();
-          exibirToast(ids ? "Lançamentos do filtro apagados." : "Todos os lançamentos foram apagados.", "sucesso");
+          let msg = ids ? "Lançamentos do filtro apagados." : "Todos os lançamentos do mês vigente foram apagados.";
+          if (preservados) msg += ` ${preservados} de meses anteriores foram mantidos.`;
+          exibirToast(msg, "sucesso");
         })
         .withFailureHandler(function() {
           exibirToast("Não foi possível limpar os lançamentos.", "erro");
@@ -2713,11 +2716,22 @@
       renderizarDadosGraficos(categoriasMap, formaPagtoMap, totalReceitas, totalDespesas);
     }
 
+    // Só lançamentos do mês vigente podem ser alterados ou excluídos (o servidor também confere).
+    const MSG_MES_PASSADO = 'Só é permitido alterar ou excluir lançamentos do mês vigente. Meses anteriores não podem ser alterados nem excluídos.';
+    function lancamentoMesPassado(dataIso) {
+      const m = String(dataIso || '').match(/^(\d{4})-(\d{2})/);
+      if (!m) return true;
+      const hoje = new Date();
+      const atual = hoje.getFullYear() + '-' + ('0' + (hoje.getMonth() + 1)).slice(-2);
+      return (m[1] + '-' + m[2]) < atual;
+    }
+
     function editarTransacao(idx) {
       document.querySelectorAll('.action-menu-dropdown').forEach(el => el.classList.add('hidden'));
       const transFiltradas = obterTransacoesFiltradas();
       const item = transFiltradas[idx];
       if (!item) return;
+      if (lancamentoMesPassado(item.date)) { exibirToast(MSG_MES_PASSADO, "erro"); return; }
 
       document.getElementById('modalTransacaoTitulo').innerText = "Editar Transação";
       document.getElementById('inputIdTransacao').value = (item.id !== undefined && item.id !== null) ? item.id : "";
@@ -2739,6 +2753,7 @@
     function confirmarExclusaoModal(idx) {
       document.querySelectorAll('.action-menu-dropdown').forEach(el => el.classList.add('hidden'));
       const transFiltradas = obterTransacoesFiltradas();
+      if (transFiltradas[idx] && lancamentoMesPassado(transFiltradas[idx].date)) { exibirToast(MSG_MES_PASSADO, "erro"); return; }
       itemParaExcluir = { index: idx, data: transFiltradas[idx] };
       
       const btn = document.getElementById('btnConfirmarExclusaoModal');
@@ -2767,6 +2782,9 @@
         google.script.run.withSuccessHandler(function() {
           carregarDados();
           exibirToast("Lançamento removido com sucesso.", "sucesso");
+        }).withFailureHandler(function(err) {
+          carregarDados();   // o servidor recusou: volta a mostrar o lançamento
+          exibirToast((err && err.message && err.message.indexOf('mês vigente') !== -1) ? err.message : "Não foi possível excluir o lançamento.", "erro");
         }).deleteTransaction(paramExclusao);
       }
     }
@@ -2887,6 +2905,10 @@
       if (event) event.preventDefault();
       const porVoz = formularioPorVoz;
       const ehNovo = document.getElementById('inputIdTransacao').value === "";
+      if (!ehNovo && lancamentoMesPassado(document.getElementById('inputData').value)) {
+        exibirToast(MSG_MES_PASSADO, "erro");
+        return;
+      }
       if (ehNovo && !outroLancamento) {
         document.getElementById('modalOutroLancamento').classList.remove('hidden');
         return;
@@ -2924,7 +2946,8 @@
           .withFailureHandler(function(err) {
             btnSalvar.disabled = false;
             btnSalvar.innerText = "Salvar";
-            exibirToast("Erro ao salvar lançamento.", "erro", TEMPO_MENSAGEM_SALVAR_MS);
+            const recusado = err && err.message && err.message.indexOf('mês vigente') !== -1;
+            exibirToast(recusado ? err.message : "Erro ao salvar lançamento.", "erro", TEMPO_MENSAGEM_SALVAR_MS);
           });
         if (dados.id === null && dados.parcelas > 1) runner.importTransactions(gerarParcelas(dados));
         else runner.saveTransaction(dados);
