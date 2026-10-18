@@ -801,7 +801,7 @@
       if (typeof google !== 'undefined' && google.script && google.script.run) return;
 
       // URL do Apps Script: a mesma registrada em usuarios.gs (PLIPAG_URL_APPS_SCRIPT). Se mudar, atualize nos dois.
-      const API_URL = 'https://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';
+      const API_URL = 'hhttps://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';
       let tokenSessao = '';
 
       // Identificador aleatório deste aparelho (guardado no navegador): o servidor usa para não deixar
@@ -3047,8 +3047,8 @@
         data: {
           labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
           datasets: [
-            { label: 'Receitas', data: serieRec || [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false, borderWidth: 5, pointRadius: 5, pointHoverRadius: 7, order: 2 },
-            { label: 'Despesas', data: serieDesp || [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false, borderWidth: 2, borderDash: [6, 4], pointStyle: 'rectRot', pointRadius: 5, pointHoverRadius: 7, order: 1 }
+            { label: 'Receitas', data: serieRec || [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false, borderWidth: 6, pointRadius: 7, pointHoverRadius: 9, order: 2 },
+            { label: 'Despesas', data: serieDesp || [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false, borderWidth: 3, borderDash: [8, 5], pointStyle: 'rectRot', pointBackgroundColor: '#f43f5e', pointBorderColor: '#ffffff', pointBorderWidth: 1, pointRadius: 5, pointHoverRadius: 8, order: 1 }
           ]
         },
         options: {
@@ -3057,7 +3057,7 @@
             x: { grid: { display: false }, ticks: { color: subtextColor, font: { size: 10 } } },
             y: { grid: { color: gridColor }, ticks: { color: subtextColor, font: { size: 10 } } }
           },
-          plugins: { legend: { position: 'top', align: 'end', labels: { color: subtextColor, font: { size: 10 }, boxWidth: 10 } } }
+          plugins: { legend: { position: 'top', align: 'end', labels: { color: subtextColor, font: { size: 10 }, boxWidth: 10, usePointStyle: true } } }
         }
       });
     }
