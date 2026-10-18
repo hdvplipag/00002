@@ -506,6 +506,10 @@
 
   </main>
 
+  <footer id="rodapeLicenca" class="px-4 pt-2 pb-6 text-center text-xs theme-subtext font-medium">
+    Licenciado para: <span id="nomeLicenciado" class="font-bold theme-text"></span>
+  </footer>
+
   <div id="barraRelatorio" class="hidden fixed top-0 left-0 right-0 h-[52px] z-[9999] flex items-center justify-between gap-2 px-3 bg-slate-900 text-white shadow-lg">
     <button onclick="fecharRelatorio()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-xmark"></i><span>Fechar</span></button>
     <span class="text-xs font-semibold truncate">Relatório</span>
@@ -1614,6 +1618,8 @@
         google.script.run.withSuccessHandler(function() {
           document.getElementById('telaLogin').classList.remove('hidden');
           document.getElementById('loginSenha').value = '';
+          const nomeLicSaida = document.getElementById('nomeLicenciado');
+          if (nomeLicSaida) nomeLicSaida.textContent = '';
           exibirToast("Sessão encerrada com sucesso.", "sucesso");
           loginRapidoDispensado = false;
           perfilRapidoSincronizado = false;
@@ -2561,6 +2567,8 @@
                 userPhotoGlobal = data.userPhoto || '';
                 exibirFotoPerfil(userPhotoGlobal);
                 atualizarPerfilRapido();
+                const nomeLic = document.getElementById('nomeLicenciado');
+                if (nomeLic) nomeLic.textContent = data.licenciadoPara || '';
 
                 if (data.transactions) {
                   listaTransacoesGlobal = data.transactions.map(t => Object.assign({}, t, { formapagto: normalizarFormaPagto(t.formapagto) || 'Pix', parcelas: parseInt(t.parcelas, 10) || 1 }));
@@ -4349,3 +4357,4 @@
 </script>
 </body>
 </html>
+f
