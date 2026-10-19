@@ -802,8 +802,6 @@
 
       // URL do Apps Script: a mesma registrada em usuarios.gs (PLIPAG_URL_APPS_SCRIPT). Se mudar, atualize nos dois.
       const API_URL = 'https://script.google.com/macros/s/AKfycby7bScgVxp5wJxV0KZ26kvU0Awd8az-pMZXSg8kTM137bvnQxQxvgpXJ39zutU8gC_Xew/exec';
-
-     
       let tokenSessao = '';
 
       // Identificador aleatório deste aparelho (guardado no navegador): o servidor usa para não deixar
@@ -1178,6 +1176,7 @@
           const fabContainer = document.getElementById('fabContainer');
           if (fabContainer) fabContainer.classList.remove('hidden');
           exibirToast("Login realizado com sucesso!", "sucesso");
+          topoAoEntrar = true; irParaTopo();
           carregarDados();
         } else {
           if (resposta && resposta.codigo === 'BIOMETRIA_INATIVA') bioLimparLocal();
@@ -1678,7 +1677,8 @@
               const fabContainer = document.getElementById('fabContainer');
               if (fabContainer) fabContainer.classList.remove('hidden');
               exibirToast(resposta.primeiroAcesso ? "Senha cadastrada! Bem-vindo ao PliPag." : "Login realizado com sucesso!", "sucesso");
-              carregarDados();
+              topoAoEntrar = true; irParaTopo();
+          carregarDados();
             } else if (resposta && resposta.status === 'primeiro_acesso') {
               mostrarConfirmacaoSenha(true);
               mostrarAvisoLogin(resposta.message, true);
@@ -1706,6 +1706,7 @@
           const fabContainer = document.getElementById('fabContainer');
           if (fabContainer) fabContainer.classList.remove('hidden');
           exibirToast("Login simulado com sucesso!", "sucesso");
+          topoAoEntrar = true; irParaTopo();
           carregarDados();
         }, 300);
       }
@@ -2740,6 +2741,13 @@
       } else fecharModalMeta();
     }
 
+    // Ao entrar no aplicativo, sempre começa no topo (Saldo Consolidado)
+    let topoAoEntrar = false;
+    function irParaTopo() {
+      try { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } catch (e) {}
+    }
+    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+
     function carregarDados(callback) {
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
@@ -2761,6 +2769,7 @@
                   renderizarDados(obterTransacoesFiltradas());
                 }
               }
+              if (topoAoEntrar) { topoAoEntrar = false; irParaTopo(); setTimeout(irParaTopo, 80); }
             } catch (e) {
               ok = false;
               exibirToast("Erro ao atualizar a tela.", "erro");
@@ -4561,7 +4570,9 @@
       configurarCampoDataBR();
       iniciarControleInatividade();
       prepararBiometriaLogin();
+      irParaTopo();
     });
+    window.addEventListener('pageshow', irParaTopo);
   </script>
 
 <script>
