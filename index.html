@@ -3179,10 +3179,17 @@
             ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center';
             ctx.fillText(txt, pos.x, pos.y);
           } else {
-            ctx.fillStyle = opts.cor || '#94a3b8'; ctx.textAlign = 'left';
             const w = ctx.measureText(txt).width;
-            const x = Math.min(el.x + 5, chart.chartArea.right - w);
-            ctx.fillText(txt, x, el.y);
+            const inicio = (typeof el.base === 'number') ? el.base : chart.chartArea.left;
+            if (el.x - inicio >= w + 12) {
+              // cabe dentro da barra: texto branco, encostado no fim da barra
+              ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right';
+              ctx.fillText(txt, el.x - 6, el.y);
+            } else {
+              // barra curta: texto fora, ao lado da barra
+              ctx.fillStyle = opts.cor || '#94a3b8'; ctx.textAlign = 'left';
+              ctx.fillText(txt, el.x + 5, el.y);
+            }
           }
         });
         ctx.restore();
@@ -3212,13 +3219,13 @@
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
           plugins: {
-            pluginPercentuais: { ativo: temCat },
+            pluginPercentuais: { ativo: false },   // percentual só aparece ao tocar na fatia (tooltip)
             legend: { position: 'bottom', labels: { color: subtextColor, font: { size: 10 },
               generateLabels: function(chart) {
                 const ds = chart.data.datasets[0];
                 const total = (ds.data || []).reduce((a, b) => a + (Number(b) || 0), 0);
                 return chart.data.labels.map(function(l, i) {
-                  return { text: temCat ? abreviar15(l) + ' ' + fmtPct(Number(ds.data[i]) || 0, total) : l,
+                  return { text: temCat ? abreviar15(l) : l,
                            fillStyle: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i % ds.backgroundColor.length] : ds.backgroundColor,
                            strokeStyle: 'transparent', lineWidth: 0, fontColor: subtextColor, hidden: false, index: i };
                 });
