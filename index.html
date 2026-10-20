@@ -413,7 +413,7 @@
     <!-- Gráficos -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="glass-panel p-5 rounded-2xl border border-slate-800">
-        <h3 class="text-sm font-bold theme-text mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-500"></i> Gastos por Categoria</h3>
+        <h3 class="text-sm font-bold theme-text mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-500"></i> <span id="tituloGraficoCategoria">Gastos por Categoria</span></h3>
         <div class="relative h-64 flex items-center justify-center"><canvas id="chartCategoria"></canvas></div>
       </div>
 
@@ -1945,7 +1945,7 @@
       document.getElementById('filtroCategoria').value = '';
       gerenciarBotaoLimparBusca();
       limiteExibicaoAtual = TAMANHO_LOTE;
-      renderizarDados(listaTransacoesGlobal);
+      renderizarDados(obterTransacoesFiltradas());
     }
 
     function ordenarTabela(coluna) {
@@ -2377,7 +2377,7 @@
           <div class="print-card"><div class="print-card-title">Saldo</div><div class="print-card-val" style="color: ${saldoTotal >= 0 ? '#10b981' : '#f43f5e'};">R$ ${saldoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>
         </div>
         <div class="print-charts-grid">
-          <div class="print-chart-box"><h4>Categorias</h4>${imgCatBase64 ? `<img src="${imgCatBase64}" class="print-chart-img" />` : ''}</div>
+          <div class="print-chart-box"><h4>${tipoRelatorioCat() === 'receita' ? 'Receita por Categorias' : 'Gastos por Categoria'}</h4>${imgCatBase64 ? `<img src="${imgCatBase64}" class="print-chart-img" />` : ''}</div>
           <div class="print-chart-box"><h4>Forma de Pagamento</h4>${imgPagtoBase64 ? `<img src="${imgPagtoBase64}" class="print-chart-img" />` : ''}</div>
           <div class="print-chart-box"><h4>Tendência</h4>${imgTendBase64 ? `<img src="${imgTendBase64}" class="print-chart-img" />` : ''}</div>
         </div>
@@ -2921,6 +2921,7 @@
     }
 
     function renderizarTabelaLote(transacoes) {
+      transacoesFiltradasCache = transacoes || [];   // a rolagem sempre carrega a partir da lista que está na tela
       const tabela = document.getElementById('tabelaTransacoes');
       let html = '';
 
@@ -2971,6 +2972,17 @@
       }
 
       atualizarEstilosTexto();
+
+      // Se ainda há registros e a página não tem rolagem suficiente para disparar o carregamento, carrega o próximo lote
+      if (transacoes && limiteExibicaoAtual < transacoes.length) {
+        setTimeout(function() {
+          if (limiteExibicaoAtual < transacoesFiltradasCache.length &&
+              document.documentElement.scrollHeight <= window.innerHeight + 100) {
+            limiteExibicaoAtual += TAMANHO_LOTE;
+            renderizarTabelaLote(transacoesFiltradasCache);
+          }
+        }, 60);
+      }
     }
 
     function renderizarDados(transacoes) {
@@ -3131,6 +3143,52 @@
       }
     }
 
+    function tipoRelatorioCat() {
+      return ((document.getElementById('filtroTipo') || {}).value || '').trim().toLowerCase();
+    }
+    // Descrição da categoria limitada a 15 caracteres
+    function abreviar15(t) {
+      t = String(t === null || t === undefined ? '' : t);
+      return t.length > 15 ? t.substring(0, 14) + '…' : t;
+    }
+    function fmtPct(v, total) {
+      if (!total) return '0%';
+      const p = v / total * 100;
+      return (p >= 10 || p === 0 ? p.toFixed(0) : p.toFixed(1)).replace('.', ',') + '%';
+    }
+    // Plugin: escreve o percentual dentro das fatias da rosca e no fim de cada barra
+    const pluginPercentuais = {
+      id: 'pluginPercentuais',
+      afterDatasetsDraw: function(chart, args, opts) {
+        if (!opts || !opts.ativo) return;
+        const ds = chart.data.datasets[0];
+        const total = (ds.data || []).reduce((a, b) => a + (Number(b) || 0), 0);
+        if (!total) return;
+        const meta = chart.getDatasetMeta(0);
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textBaseline = 'middle';
+        meta.data.forEach(function(el, i) {
+          const v = Number(ds.data[i]) || 0;
+          if (!v) return;
+          const txt = fmtPct(v, total);
+          if (chart.config.type === 'doughnut') {
+            if (v / total < 0.06) return;   // fatia muito fina: o percentual aparece na legenda
+            const pos = el.tooltipPosition();
+            ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center';
+            ctx.fillText(txt, pos.x, pos.y);
+          } else {
+            ctx.fillStyle = opts.cor || '#94a3b8'; ctx.textAlign = 'left';
+            const w = ctx.measureText(txt).width;
+            const x = Math.min(el.x + 5, chart.chartArea.right - w);
+            ctx.fillText(txt, x, el.y);
+          }
+        });
+        ctx.restore();
+      }
+    };
+
     function renderizarDadosGraficos(categoriasMap, formaPagtoMap, receitas, despesas, serieRec, serieDesp, tipoFiltro) {
       const isDark = currentTheme === 'dark';
       const subtextColor = isDark ? '#94a3b8' : '#475569';
@@ -3139,6 +3197,8 @@
       const ctxCat = document.getElementById('chartCategoria').getContext('2d');
       if (chartCategoriaInst) chartCategoriaInst.destroy();
 
+      const tituloCat = document.getElementById('tituloGraficoCategoria');
+      if (tituloCat) tituloCat.textContent = tipoFiltro === 'receita' ? 'Receita por Categorias' : 'Gastos por Categoria';
       const temCat = Object.keys(categoriasMap).length > 0;
       const catLabels = temCat ? Object.keys(categoriasMap) : ['Sem dados'];
       const catData = temCat ? Object.values(categoriasMap) : [1];
@@ -3151,9 +3211,23 @@
         },
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
-          plugins: { legend: { position: 'bottom', labels: { color: subtextColor, font: { size: 10 } } } },
+          plugins: {
+            pluginPercentuais: { ativo: temCat },
+            legend: { position: 'bottom', labels: { color: subtextColor, font: { size: 10 },
+              generateLabels: function(chart) {
+                const ds = chart.data.datasets[0];
+                const total = (ds.data || []).reduce((a, b) => a + (Number(b) || 0), 0);
+                return chart.data.labels.map(function(l, i) {
+                  return { text: temCat ? abreviar15(l) + ' ' + fmtPct(Number(ds.data[i]) || 0, total) : l,
+                           fillStyle: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i % ds.backgroundColor.length] : ds.backgroundColor,
+                           strokeStyle: 'transparent', lineWidth: 0, fontColor: subtextColor, hidden: false, index: i };
+                });
+              } } },
+            tooltip: { callbacks: { label: function(c) { const t = (c.dataset.data || []).reduce((a, b) => a + (Number(b) || 0), 0); const v = c.raw || 0; return temCat ? ` ${c.label}: R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${fmtPct(v, t)})` : ' Sem dados'; } } }
+          },
           cutout: '70%'
-        }
+        },
+        plugins: [pluginPercentuais]
       });
 
       // Gráfico de Forma de Pagamento (barras horizontais com altura reduzida à metade)
@@ -3176,18 +3250,22 @@
             x: { grid: { color: gridColor }, ticks: { color: subtextColor, font: { size: 10 } } },
             y: { grid: { display: false }, ticks: { color: subtextColor, font: { size: 10 } } }
           },
+          layout: { padding: { right: 34 } },
           plugins: { 
+            pluginPercentuais: { ativo: true, cor: subtextColor },
             legend: { display: false },
             tooltip: {
               callbacks: {
                 label: function(context) {
                   let value = context.raw || 0;
-                  return ` R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                  const t = (context.dataset.data || []).reduce((a, b) => a + (Number(b) || 0), 0);
+                  return ` R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${fmtPct(value, t)})`;
                 }
               }
             }
           }
-        }
+        },
+        plugins: [pluginPercentuais]
       });
 
       // Gráfico de Tendência Anual (linhas)
