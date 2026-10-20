@@ -460,6 +460,15 @@
             <select id="filtroCategoria" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 sm:flex-initial">
               <option value="">Todas categorias</option>
             </select>
+            <div class="relative shrink-0" id="menuFerramentasWrap">
+              <button type="button" id="btnMenuFerramentas" onclick="alternarMenuFerramentas(event)" aria-label="Mais opções" title="Exportar, Importar, Limpar e Mover" class="w-9 h-9 flex items-center justify-center bg-slate-900 text-white rounded-xl border border-slate-700 hover:border-slate-500"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div id="menuFerramentas" class="hidden absolute right-0 top-full mt-2 w-44 z-40 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-1.5 flex flex-col gap-1">
+                <button type="button" onclick="fecharMenuFerramentas(); exportarCSV()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-export text-emerald-500 w-4 text-center"></i><span>Exportar</span></button>
+                <button type="button" onclick="fecharMenuFerramentas(); document.getElementById('inputImportarCSV').click()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-import text-sky-500 w-4 text-center"></i><span>Importar</span></button>
+                <button type="button" onclick="fecharMenuFerramentas(); abrirModalLimparLancamentos()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-trash-can text-rose-500 w-4 text-center"></i><span>Limpar</span></button>
+                <button type="button" onclick="fecharMenuFerramentas(); abrirModalMoverCategoria()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-right-left text-violet-400 w-4 text-center"></i><span>Mover</span></button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -493,14 +502,8 @@
         </table>
       </div>
 
-      <div class="pt-3 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div class="flex items-center gap-2 shrink-0">
-          <button onclick="exportarCSV()" class="px-3.5 py-2 bg-emerald-600 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-file-export text-sm"></i><span>Exportar</span></button>
-          <button onclick="document.getElementById('inputImportarCSV').click()" class="px-3.5 py-2 bg-sky-600 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-file-import text-sm"></i><span>Importar</span></button>
-          <button onclick="abrirModalLimparLancamentos()" class="px-3.5 py-2 bg-rose-600 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-trash-can text-sm"></i><span>Limpar</span></button>
-          <button onclick="abrirModalMoverCategoria()" class="px-3.5 py-2 bg-violet-600 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-right-left text-sm"></i><span>Mover</span></button>
-          <input type="file" id="inputImportarCSV" accept=".csv,text/csv,text/plain" class="hidden" onchange="importarCSV(this)">
-        </div>
+      <div class="pt-3 border-t border-slate-800/60 flex items-center justify-end gap-3">
+        <input type="file" id="inputImportarCSV" accept=".csv,text/csv,text/plain" class="hidden" onchange="importarCSV(this)">
         <div id="totalRegistrosFooter" class="text-xs theme-subtext font-medium">Total de registros: 0</div>
       </div>
     </div>
@@ -2221,6 +2224,19 @@
         });
       if (ids) runner.deleteTransactions(ids); else runner.clearTransactions();
     }
+
+    function alternarMenuFerramentas(ev) {
+      if (ev) ev.stopPropagation();
+      document.getElementById('menuFerramentas').classList.toggle('hidden');
+    }
+    function fecharMenuFerramentas() {
+      const m = document.getElementById('menuFerramentas');
+      if (m) m.classList.add('hidden');
+    }
+    document.addEventListener('click', function(ev) {
+      const w = document.getElementById('menuFerramentasWrap');
+      if (w && !w.contains(ev.target)) fecharMenuFerramentas();
+    });
 
     function toggleFabMenu() {
       const menu = document.getElementById('fabMenu');
