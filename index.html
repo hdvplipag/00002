@@ -3230,7 +3230,7 @@
                            strokeStyle: 'transparent', lineWidth: 0, fontColor: subtextColor, hidden: false, index: i };
                 });
               } } },
-            tooltip: { callbacks: { label: function(c) { const t = (c.dataset.data || []).reduce((a, b) => a + (Number(b) || 0), 0); const v = c.raw || 0; return temCat ? ` ${c.label}: R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${fmtPct(v, t)})` : ' Sem dados'; } } }
+            tooltip: { callbacks: { title: function() { return ''; }, label: function(c) { const t = (c.dataset.data || []).reduce((a, b) => a + (Number(b) || 0), 0); const v = c.raw || 0; return temCat ? ` ${abreviar15(c.label)}: R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${fmtPct(v, t)})` : ' Sem dados'; } } }
           },
           cutout: '70%'
         },
