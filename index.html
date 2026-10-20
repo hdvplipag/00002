@@ -446,10 +446,21 @@
         <h2 class="text-lg font-bold flex items-center gap-2 theme-text shrink-0"><i class="fa-solid fa-list text-emerald-500"></i> Histórico de Transações</h2>
         
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:flex-1 lg:ml-6">
-          <div class="relative flex-1 w-full">
+          <div class="flex items-center gap-2 w-full sm:flex-1 min-w-0">
+          <div class="relative flex-1 w-full min-w-0">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
             <input type="text" id="filtroDescricao" oninput="gerenciarBotaoLimparBusca(); aplicarFiltroDatas();" placeholder="Pesquisar transações..." class="w-full bg-slate-900 text-white pl-8 pr-8 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none">
             <button id="btnLimparBusca" onclick="limparCampoBusca()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-500 font-bold text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+            <div class="relative shrink-0 sm:hidden menu-ferramentas-wrap">
+              <button type="button" onclick="alternarMenuFerramentas(event, this)" aria-label="Mais opções" title="Exportar, Importar, Limpar e Mover" class="w-10 h-9 flex items-center justify-center bg-slate-900 text-white rounded-xl border border-slate-700 hover:border-slate-500" style="-webkit-tap-highlight-color: transparent; touch-action: manipulation;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="menu-ferramentas hidden absolute right-0 top-full mt-2 w-44 max-w-[calc(100vw-2rem)] z-40 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-1.5 flex flex-col gap-1">
+                <button type="button" onclick="fecharMenuFerramentas(); exportarCSV()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-export text-emerald-500 w-4 text-center"></i><span>Exportar</span></button>
+                <button type="button" onclick="fecharMenuFerramentas(); document.getElementById('inputImportarCSV').click()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-import text-sky-500 w-4 text-center"></i><span>Importar</span></button>
+                <button type="button" onclick="fecharMenuFerramentas(); abrirModalLimparLancamentos()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-trash-can text-rose-500 w-4 text-center"></i><span>Limpar</span></button>
+                <button type="button" onclick="fecharMenuFerramentas(); abrirModalMoverCategoria()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-right-left text-violet-400 w-4 text-center"></i><span>Mover</span></button>
+              </div>
+            </div>
           </div>
           <div class="flex items-center gap-2 w-full min-w-0 sm:w-auto">
             <select id="filtroTipo" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 min-w-0 w-0 sm:w-auto sm:flex-initial">
@@ -460,9 +471,9 @@
             <select id="filtroCategoria" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 min-w-0 w-0 sm:w-auto sm:flex-initial">
               <option value="">Todas categorias</option>
             </select>
-            <div class="relative shrink-0" id="menuFerramentasWrap">
-              <button type="button" id="btnMenuFerramentas" onclick="alternarMenuFerramentas(event)" aria-label="Mais opções" title="Exportar, Importar, Limpar e Mover" class="w-10 h-9 flex items-center justify-center bg-slate-900 text-white rounded-xl border border-slate-700 hover:border-slate-500" style="-webkit-tap-highlight-color: transparent; touch-action: manipulation;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-              <div id="menuFerramentas" class="hidden absolute right-0 top-full mt-2 w-44 max-w-[calc(100vw-2rem)] z-40 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-1.5 flex flex-col gap-1">
+            <div class="relative shrink-0 hidden sm:block menu-ferramentas-wrap">
+              <button type="button" onclick="alternarMenuFerramentas(event, this)" aria-label="Mais opções" title="Exportar, Importar, Limpar e Mover" class="w-10 h-9 flex items-center justify-center bg-slate-900 text-white rounded-xl border border-slate-700 hover:border-slate-500" style="-webkit-tap-highlight-color: transparent; touch-action: manipulation;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="menu-ferramentas hidden absolute right-0 top-full mt-2 w-44 max-w-[calc(100vw-2rem)] z-40 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-1.5 flex flex-col gap-1">
                 <button type="button" onclick="fecharMenuFerramentas(); exportarCSV()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-export text-emerald-500 w-4 text-center"></i><span>Exportar</span></button>
                 <button type="button" onclick="fecharMenuFerramentas(); document.getElementById('inputImportarCSV').click()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-import text-sky-500 w-4 text-center"></i><span>Importar</span></button>
                 <button type="button" onclick="fecharMenuFerramentas(); abrirModalLimparLancamentos()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-trash-can text-rose-500 w-4 text-center"></i><span>Limpar</span></button>
@@ -2243,17 +2254,18 @@
       if (ids) runner.deleteTransactions(ids); else runner.clearTransactions();
     }
 
-    function alternarMenuFerramentas(ev) {
+    function alternarMenuFerramentas(ev, btn) {
       if (ev) ev.stopPropagation();
-      document.getElementById('menuFerramentas').classList.toggle('hidden');
+      const menu = btn && btn.parentElement ? btn.parentElement.querySelector('.menu-ferramentas') : null;
+      const abrir = menu && menu.classList.contains('hidden');
+      fecharMenuFerramentas();
+      if (abrir) menu.classList.remove('hidden');
     }
     function fecharMenuFerramentas() {
-      const m = document.getElementById('menuFerramentas');
-      if (m) m.classList.add('hidden');
+      document.querySelectorAll('.menu-ferramentas').forEach(m => m.classList.add('hidden'));
     }
     document.addEventListener('click', function(ev) {
-      const w = document.getElementById('menuFerramentasWrap');
-      if (w && !w.contains(ev.target)) fecharMenuFerramentas();
+      if (!ev.target.closest('.menu-ferramentas-wrap')) fecharMenuFerramentas();
     });
 
     function toggleFabMenu() {
