@@ -1203,7 +1203,7 @@
         } else {
           if (resposta && resposta.codigo === 'BIOMETRIA_INATIVA') bioLimparLocal();
           else buscarDesafioBiometria();
-          if (resposta && resposta.codigo === 'NAO_CADASTRADO') mostrarAvisoLogin(resposta.message);
+          if (resposta && resposta.codigo === 'NAO_CADASTRADO') { redirecionarParaPagamento(); return; }
           exibirToast((resposta && resposta.message) ? resposta.message : 'Não foi possível validar a biometria.', 'erro');
         }
       }).catch(function() {
@@ -1449,6 +1449,21 @@
     }
 
     // ----- Avisos do login (e-mail não cadastrado, primeiro acesso) -----
+    // Usuário não cadastrado: leva para a página de pagamento/assinatura
+    const LINK_PAGAMENTO = 'https://pay.cakto.com.br/cr7fjgh_1222038';
+    let redirecionandoPagamento = false;
+    function redirecionarParaPagamento() {
+      if (redirecionandoPagamento) return;
+      redirecionandoPagamento = true;
+      const msg = 'Usuário não cadastrado. Redirecionando para a página de pagamento...';
+      mostrarAvisoLogin(msg, true);
+      exibirToast(msg, 'sucesso', 2500);
+      setTimeout(function() {
+        redirecionandoPagamento = false;
+        window.location.href = LINK_PAGAMENTO;
+      }, 2000);
+    }
+
     function mostrarAvisoLogin(texto, informativo) {
       const el = document.getElementById('avisoLogin');
       if (!el) return;
@@ -1706,7 +1721,7 @@
               mostrarAvisoLogin(resposta.message, true);
               document.getElementById('loginSenhaConfirma').focus();
             } else {
-              if (resposta && resposta.codigo === 'NAO_CADASTRADO') mostrarConfirmacaoSenha(false);
+              if (resposta && resposta.codigo === 'NAO_CADASTRADO') { mostrarConfirmacaoSenha(false); redirecionarParaPagamento(); return; }
               const msg = (resposta && resposta.message) ? resposta.message : "E-mail ou senha incorretos.";
               mostrarAvisoLogin(msg);
               exibirToast(msg, "erro");
