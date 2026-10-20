@@ -2013,6 +2013,9 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+      const qtd = transacoes.length;
+      exibirToast(`Arquivo exportado com sucesso! (${qtd} lançamento${qtd === 1 ? '' : 's'})`, "sucesso");
     }
 
     // ===================== IMPORTAR / LIMPAR =====================
