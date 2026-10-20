@@ -463,7 +463,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2 w-full min-w-0 sm:w-auto">
-            <select id="filtroTipo" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 min-w-0 w-0 sm:w-auto sm:flex-initial">
+            <select id="filtroTipo" onchange="atualizarOpcoesCategorias(listaTransacoesGlobal); aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 min-w-0 w-0 sm:w-auto sm:flex-initial">
               <option value="">Todos os tipos</option>
               <option value="Receita">Receita</option>
               <option value="Despesa">Despesa</option>
@@ -1918,15 +1918,18 @@
 
       const valorSelecionado = selectCat.value;
       const categorias = new Set();
+      // as categorias oferecidas seguem o tipo escolhido (Receita ou Despesa)
+      const tipoSelCat = ((document.getElementById('filtroTipo') || {}).value || '').trim().toLowerCase();
       
       transacoes.forEach(t => {
+        if (tipoSelCat && (t.type || '').trim().toLowerCase() !== tipoSelCat) return;
         if (t.category && t.category.trim() !== '') categorias.add(t.category.trim());
       });
 
       let html = '<option value="">Todas categorias</option>';
       Array.from(categorias).sort().forEach(cat => { html += `<option value="${cat}">${cat}</option>`; });
       selectCat.innerHTML = html;
-      selectCat.value = valorSelecionado;
+      selectCat.value = categorias.has(valorSelecionado) ? valorSelecionado : '';
     }
 
     function aplicarFiltroDatas() { 
@@ -2974,11 +2977,19 @@
       let totalReceitas = 0, totalDespesas = 0, countRec = 0, countDesp = 0;
       let categoriasMap = {};
       let formaPagtoMap = {};
+      // Gráficos de categoria e forma de pagamento acompanham o filtro de tipo:
+      // Receita -> só receitas; Despesa (ou sem filtro de tipo) -> só despesas.
+      const tipoFiltro = (document.getElementById('filtroTipo').value || '').trim().toLowerCase();
+      let catGraf = {}, pagtoGraf = {};
 
       if (transacoes && transacoes.length > 0) {
         transacoes.forEach((t) => {
           const valor = Number(t.amount) || 0;
           const isReceita = (t.type || '').trim().toLowerCase() === 'receita';
+          if (tipoFiltro === 'receita' && isReceita) {
+            const cR = t.category || 'Geral'; catGraf[cR] = (catGraf[cR] || 0) + valor;
+            const fR = t.formapagto || 'Pix'; pagtoGraf[fR] = (pagtoGraf[fR] || 0) + valor;
+          }
 
           if (isReceita) { 
             totalReceitas += valor; 
@@ -2991,6 +3002,7 @@
 
             const fp = t.formapagto || 'Pix';
             formaPagtoMap[fp] = (formaPagtoMap[fp] || 0) + valor;
+            if (tipoFiltro !== 'receita') { catGraf[cat] = (catGraf[cat] || 0) + valor; pagtoGraf[fp] = (pagtoGraf[fp] || 0) + valor; }
           }
         });
       }
@@ -3029,7 +3041,12 @@
       // Tendência: receitas e despesas mês a mês (ano mais recente dos lançamentos listados)
       const serieRec = new Array(12).fill(0), serieDesp = new Array(12).fill(0);
       let anoTend = new Date().getFullYear();
-      const baseTend = (typeof listaTransacoesGlobal !== 'undefined' && listaTransacoesGlobal && listaTransacoesGlobal.length) ? listaTransacoesGlobal : (transacoes || []);
+      const catFiltro = (document.getElementById('filtroCategoria').value || '').trim().toLowerCase();
+      const buscaFiltro = (document.getElementById('filtroDescricao').value || '').trim().toLowerCase();
+      const baseTend = ((typeof listaTransacoesGlobal !== 'undefined' && listaTransacoesGlobal && listaTransacoesGlobal.length) ? listaTransacoesGlobal : (transacoes || []))
+        .filter(t => (!tipoFiltro || (t.type || '').trim().toLowerCase() === tipoFiltro)
+                  && (!catFiltro || (t.category || '').trim().toLowerCase() === catFiltro)
+                  && (!buscaFiltro || (t.description || '').toLowerCase().includes(buscaFiltro)));
       const datas = baseTend.map(t => String(t.date || '').match(/^(\d{4})-(\d{2})/)).filter(Boolean);
       if (datas.length) anoTend = Math.max.apply(null, datas.map(m => +m[1]));
       baseTend.forEach(t => {
@@ -3038,7 +3055,7 @@
         const v = Number(t.amount) || 0, i = +m[2] - 1;
         if ((t.type || '').trim().toLowerCase() === 'receita') serieRec[i] += v; else serieDesp[i] += v;
       });
-      renderizarDadosGraficos(categoriasMap, formaPagtoMap, totalReceitas, totalDespesas, serieRec, serieDesp);
+      renderizarDadosGraficos(catGraf, pagtoGraf, totalReceitas, totalDespesas, serieRec, serieDesp, tipoFiltro);
     }
 
     // Só lançamentos do mês vigente podem ser alterados ou excluídos (o servidor também confere).
@@ -3114,7 +3131,7 @@
       }
     }
 
-    function renderizarDadosGraficos(categoriasMap, formaPagtoMap, receitas, despesas, serieRec, serieDesp) {
+    function renderizarDadosGraficos(categoriasMap, formaPagtoMap, receitas, despesas, serieRec, serieDesp, tipoFiltro) {
       const isDark = currentTheme === 'dark';
       const subtextColor = isDark ? '#94a3b8' : '#475569';
       const gridColor = isDark ? '#1e293b' : '#e2e8f0';
@@ -3122,14 +3139,15 @@
       const ctxCat = document.getElementById('chartCategoria').getContext('2d');
       if (chartCategoriaInst) chartCategoriaInst.destroy();
 
-      const catLabels = Object.keys(categoriasMap).length > 0 ? Object.keys(categoriasMap) : ['Alimentação'];
-      const catData = Object.keys(categoriasMap).length > 0 ? Object.values(categoriasMap) : [1];
+      const temCat = Object.keys(categoriasMap).length > 0;
+      const catLabels = temCat ? Object.keys(categoriasMap) : ['Sem dados'];
+      const catData = temCat ? Object.values(categoriasMap) : [1];
 
       chartCategoriaInst = new Chart(ctxCat, {
         type: 'doughnut',
         data: {
           labels: catLabels,
-          datasets: [{ data: catData, backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#06b6d4'], borderWidth: 0 }]
+          datasets: [{ data: catData, backgroundColor: temCat ? ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#06b6d4'] : ['#94a3b8'], borderWidth: 0 }]
         },
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
@@ -3142,8 +3160,8 @@
       const ctxPagto = document.getElementById('chartFormaPagto').getContext('2d');
       if (chartFormaPagtoInst) chartFormaPagtoInst.destroy();
 
-      const pagtoLabels = Object.keys(formaPagtoMap).length > 0 ? Object.keys(formaPagtoMap) : ['Pix'];
-      const pagtoData = Object.keys(formaPagtoMap).length > 0 ? Object.values(formaPagtoMap) : [1];
+      const pagtoLabels = Object.keys(formaPagtoMap);
+      const pagtoData = Object.values(formaPagtoMap);
 
       chartFormaPagtoInst = new Chart(ctxPagto, {
         type: 'bar',
@@ -3181,9 +3199,9 @@
         data: {
           labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
           datasets: [
-            { label: 'Receitas', data: serieRec || [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false, borderWidth: 6, pointRadius: 7, pointHoverRadius: 9, order: 2 },
-            { label: 'Despesas', data: serieDesp || [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false, borderWidth: 3, borderDash: [8, 5], pointStyle: 'rectRot', pointBackgroundColor: '#f43f5e', pointBorderColor: '#ffffff', pointBorderWidth: 1, pointRadius: 5, pointHoverRadius: 8, order: 1 }
-          ]
+            { label: 'Receitas', data: serieRec || [0, 0, 0, 0, 0, 0, 0, 0, 0, receitas, 0, 0], borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, fill: false, borderWidth: tipoFiltro === 'receita' ? 3 : 6, pointRadius: tipoFiltro === 'receita' ? 4 : 7, pointHoverRadius: 9, order: 2 },
+            { label: 'Despesas', data: serieDesp || [0, 0, 0, 0, 0, 0, 0, 0, 0, despesas, 0, 0], borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, fill: false, borderWidth: tipoFiltro === 'despesa' ? 3 : 3, borderDash: tipoFiltro === 'despesa' ? [] : [8, 5], pointStyle: tipoFiltro === 'despesa' ? 'circle' : 'rectRot', pointBackgroundColor: '#f43f5e', pointBorderColor: '#ffffff', pointBorderWidth: 1, pointRadius: tipoFiltro === 'despesa' ? 4 : 5, pointHoverRadius: 8, order: 1 }
+          ].filter(function(d) { return tipoFiltro === 'receita' ? d.label === 'Receitas' : (tipoFiltro === 'despesa' ? d.label === 'Despesas' : true); })
         },
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
