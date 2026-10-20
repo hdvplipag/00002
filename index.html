@@ -181,7 +181,7 @@
       .print-table .print-repeat-title th { background: #ffffff; color: #0f172a; text-align: center; text-transform: none; padding: 0 0 8px 0; }
       .print-table .print-repeat-title .print-header h1 { font-size: 18px; }
     }
-  </style>
+    </style>
 </head>
 <body id="appBody" class="light bg-slate-100/70 text-slate-900 min-h-screen font-sans pb-24 md:pb-8 transition-colors duration-300">
 
@@ -451,18 +451,18 @@
             <input type="text" id="filtroDescricao" oninput="gerenciarBotaoLimparBusca(); aplicarFiltroDatas();" placeholder="Pesquisar transações..." class="w-full bg-slate-900 text-white pl-8 pr-8 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none">
             <button id="btnLimparBusca" onclick="limparCampoBusca()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-500 font-bold text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
           </div>
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <select id="filtroTipo" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 sm:flex-initial">
+          <div class="flex items-center gap-2 w-full min-w-0 sm:w-auto">
+            <select id="filtroTipo" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 min-w-0 w-0 sm:w-auto sm:flex-initial">
               <option value="">Todos os tipos</option>
               <option value="Receita">Receita</option>
               <option value="Despesa">Despesa</option>
             </select>
-            <select id="filtroCategoria" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 sm:flex-initial">
+            <select id="filtroCategoria" onchange="aplicarFiltroDatas()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs border border-slate-700 focus:outline-none flex-1 min-w-0 w-0 sm:w-auto sm:flex-initial">
               <option value="">Todas categorias</option>
             </select>
             <div class="relative shrink-0" id="menuFerramentasWrap">
-              <button type="button" id="btnMenuFerramentas" onclick="alternarMenuFerramentas(event)" aria-label="Mais opções" title="Exportar, Importar, Limpar e Mover" class="w-9 h-9 flex items-center justify-center bg-slate-900 text-white rounded-xl border border-slate-700 hover:border-slate-500"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-              <div id="menuFerramentas" class="hidden absolute right-0 top-full mt-2 w-44 z-40 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-1.5 flex flex-col gap-1">
+              <button type="button" id="btnMenuFerramentas" onclick="alternarMenuFerramentas(event)" aria-label="Mais opções" title="Exportar, Importar, Limpar e Mover" class="w-10 h-9 flex items-center justify-center bg-slate-900 text-white rounded-xl border border-slate-700 hover:border-slate-500" style="-webkit-tap-highlight-color: transparent; touch-action: manipulation;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div id="menuFerramentas" class="hidden absolute right-0 top-full mt-2 w-44 max-w-[calc(100vw-2rem)] z-40 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-1.5 flex flex-col gap-1">
                 <button type="button" onclick="fecharMenuFerramentas(); exportarCSV()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-export text-emerald-500 w-4 text-center"></i><span>Exportar</span></button>
                 <button type="button" onclick="fecharMenuFerramentas(); document.getElementById('inputImportarCSV').click()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-import text-sky-500 w-4 text-center"></i><span>Importar</span></button>
                 <button type="button" onclick="fecharMenuFerramentas(); abrirModalLimparLancamentos()" class="w-full px-3 py-2 text-left text-xs font-semibold text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="fa-solid fa-trash-can text-rose-500 w-4 text-center"></i><span>Limpar</span></button>
