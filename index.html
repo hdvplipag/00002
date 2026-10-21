@@ -853,14 +853,24 @@
       }
 
       function chamarApi(fn, args) {
+        // Tempo máximo de espera: assim a tela nunca fica "Preparando..." para sempre se o servidor não responder
+        const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        const limiteMs = (fn === 'analisarSaudeFinanceira' || fn === 'consultarNfce' || fn === 'importTransactions') ? 90000 : 30000;
+        const timer = ctrl ? setTimeout(function() { ctrl.abort(); }, limiteMs) : null;
         return fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ fn: fn, args: args, token: tokenSessao }),
-          redirect: 'follow'
+          redirect: 'follow',
+          signal: ctrl ? ctrl.signal : undefined
         }).then(function(r) { return r.json(); }).then(function(j) {
+          if (timer) clearTimeout(timer);
           if (!j || !j.ok) throw new Error((j && j.error) || 'Erro no servidor');
           return j.result;
+        }).catch(function(e) {
+          if (timer) clearTimeout(timer);
+          if (e && e.name === 'AbortError') throw new Error('O servidor demorou para responder. Tente novamente.');
+          throw e;
         });
       }
 
