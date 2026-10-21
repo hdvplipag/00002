@@ -2353,6 +2353,8 @@
         `;
       });
 
+      const recsRel = receitasConsideradasNoFiltro(transacoes);
+      if (recsRel) totalEntradas = recsRel.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
       const saldoTotal = totalEntradas - totalSaidas;
       let imgCatBase64 = chartCategoriaInst ? chartCategoriaInst.toBase64Image() : '';
       let imgPagtoBase64 = chartFormaPagtoInst ? chartFormaPagtoInst.toBase64Image() : '';
@@ -2985,6 +2987,28 @@
       }
     }
 
+    // Filtro por categoria de despesa: as Receitas do período continuam sendo consideradas (Saldo = Receitas - Despesas).
+    // Retorna a lista de receitas a somar nos cartões, ou null quando a regra não se aplica.
+    function receitasConsideradasNoFiltro(transacoes) {
+      const catSel = (document.getElementById('filtroCategoria').value || '').trim();
+      const tipoSel = (document.getElementById('filtroTipo').value || '').trim().toLowerCase();
+      if (!catSel || tipoSel === 'receita') return null;
+      const temDespesa = (transacoes || []).some(t => (t.type || '').trim().toLowerCase() !== 'receita');
+      if (!temDespesa) return null;   // categoria só de receitas: segue o filtro normal
+      const dInicio = document.getElementById('filtroDataInicio').value;
+      const dFim = document.getElementById('filtroDataFim').value;
+      const busca = (document.getElementById('filtroDescricao').value || '').trim().toLowerCase();
+      return (listaTransacoesGlobal || []).filter(t => {
+        if ((t.type || '').trim().toLowerCase() !== 'receita') return false;
+        let d = t.date || '';
+        if (d.includes('/')) { const p = d.split('/'); if (p.length === 3) d = `${p[2]}-${('0'+p[1]).slice(-2)}-${('0'+p[0]).slice(-2)}`; }
+        if (dInicio && d < dInicio) return false;
+        if (dFim && d > dFim) return false;
+        if (busca && !(t.description || '').toLowerCase().includes(busca)) return false;
+        return true;
+      });
+    }
+
     function renderizarDados(transacoes) {
       let totalReceitas = 0, totalDespesas = 0, countRec = 0, countDesp = 0;
       let categoriasMap = {};
@@ -3019,6 +3043,11 @@
         });
       }
 
+      const recsFiltro = receitasConsideradasNoFiltro(transacoes);
+      if (recsFiltro) {
+        totalReceitas = recsFiltro.reduce((a, t) => a + (Number(t.amount) || 0), 0);
+        countRec = recsFiltro.length;
+      }
       const saldo = totalReceitas - totalDespesas;
       document.getElementById('cardSaldo').innerText = `R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
       document.getElementById('cardReceitas').innerText = `R$ ${totalReceitas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
@@ -3057,7 +3086,7 @@
       const buscaFiltro = (document.getElementById('filtroDescricao').value || '').trim().toLowerCase();
       const baseTend = ((typeof listaTransacoesGlobal !== 'undefined' && listaTransacoesGlobal && listaTransacoesGlobal.length) ? listaTransacoesGlobal : (transacoes || []))
         .filter(t => (!tipoFiltro || (t.type || '').trim().toLowerCase() === tipoFiltro)
-                  && (!catFiltro || (t.category || '').trim().toLowerCase() === catFiltro)
+                  && (!catFiltro || (recsFiltro && (t.type || '').trim().toLowerCase() === 'receita') || (t.category || '').trim().toLowerCase() === catFiltro)
                   && (!buscaFiltro || (t.description || '').toLowerCase().includes(buscaFiltro)));
       const datas = baseTend.map(t => String(t.date || '').match(/^(\d{4})-(\d{2})/)).filter(Boolean);
       if (datas.length) anoTend = Math.max.apply(null, datas.map(m => +m[1]));
