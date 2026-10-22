@@ -3260,13 +3260,16 @@
       if (tituloCat) tituloCat.textContent = tipoFiltro === 'receita' ? 'Receita por Categorias' : 'Gastos por Categoria';
       const temCat = Object.keys(categoriasMap).length > 0;
       const catLabels = temCat ? Object.keys(categoriasMap) : ['Sem dados'];
-      const catData = temCat ? Object.values(categoriasMap) : [1];
+      const catReais = temCat ? Object.values(categoriasMap) : [1];
+      // categorias muito pequenas ganham uma fatia mínima (1,5%) só no desenho, para não sumirem do gráfico; os valores reais ficam no balão
+      const catTotalReal = catReais.reduce((a, b) => a + (Number(b) || 0), 0);
+      const catData = temCat ? catReais.map(v => (catTotalReal && v > 0 && v / catTotalReal < 0.015) ? catTotalReal * 0.015 : v) : catReais;
 
       chartCategoriaInst = new Chart(ctxCat, {
         type: 'doughnut',
         data: {
           labels: catLabels,
-          datasets: [{ data: catData, backgroundColor: temCat ? ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#06b6d4'] : ['#94a3b8'], borderWidth: 0 }]
+          datasets: [{ data: catData, valoresReais: catReais, backgroundColor: temCat ? ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#06b6d4'] : ['#94a3b8'], borderWidth: 0 }]
         },
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
@@ -3282,7 +3285,7 @@
                            strokeStyle: 'transparent', lineWidth: 0, fontColor: subtextColor, hidden: false, index: i };
                 });
               } } },
-            tooltip: { callbacks: { title: function() { return ''; }, label: function(c) { const t = (c.dataset.data || []).reduce((a, b) => a + (Number(b) || 0), 0); const v = c.raw || 0; return temCat ? ` ${abreviar15(c.label)}: R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${fmtPct(v, t)})` : ' Sem dados'; } } }
+            tooltip: { callbacks: { title: function() { return ''; }, label: function(c) { const reais = c.dataset.valoresReais || c.dataset.data || []; const t = reais.reduce((a, b) => a + (Number(b) || 0), 0); const v = reais[c.dataIndex] || 0; return temCat ? ` ${abreviar15(c.label)}: R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${fmtPct(v, t)})` : ' Sem dados'; } } }
           },
           cutout: '70%'
         },
