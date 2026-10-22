@@ -2355,6 +2355,8 @@
 
       const recsRel = receitasConsideradasNoFiltro(transacoes);
       if (recsRel) totalEntradas = recsRel.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+      const despRel = despesasDoPeriodoNoFiltroReceita();
+      if (despRel) totalSaidas = despRel.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
       const saldoTotal = totalEntradas - totalSaidas;
       let imgCatBase64 = chartCategoriaInst ? chartCategoriaInst.toBase64Image() : '';
       let imgPagtoBase64 = chartFormaPagtoInst ? chartFormaPagtoInst.toBase64Image() : '';
@@ -3009,6 +3011,22 @@
       });
     }
 
+    // Filtro de tipo = Receita: as Despesas do mesmo período (datas) também entram nos cartões e no Saldo.
+    function despesasDoPeriodoNoFiltroReceita() {
+      const tipoSel = (document.getElementById('filtroTipo').value || '').trim().toLowerCase();
+      if (tipoSel !== 'receita') return null;
+      const dInicio = document.getElementById('filtroDataInicio').value;
+      const dFim = document.getElementById('filtroDataFim').value;
+      return (listaTransacoesGlobal || []).filter(t => {
+        if ((t.type || '').trim().toLowerCase() === 'receita') return false;
+        let d = t.date || '';
+        if (d.includes('/')) { const p = d.split('/'); if (p.length === 3) d = `${p[2]}-${('0'+p[1]).slice(-2)}-${('0'+p[0]).slice(-2)}`; }
+        if (dInicio && d < dInicio) return false;
+        if (dFim && d > dFim) return false;
+        return true;
+      });
+    }
+
     function renderizarDados(transacoes) {
       let totalReceitas = 0, totalDespesas = 0, countRec = 0, countDesp = 0;
       let categoriasMap = {};
@@ -3047,6 +3065,11 @@
       if (recsFiltro) {
         totalReceitas = recsFiltro.reduce((a, t) => a + (Number(t.amount) || 0), 0);
         countRec = recsFiltro.length;
+      }
+      const despFiltroRec = despesasDoPeriodoNoFiltroReceita();
+      if (despFiltroRec) {
+        totalDespesas = despFiltroRec.reduce((a, t) => a + (Number(t.amount) || 0), 0);
+        countDesp = despFiltroRec.length;
       }
       const saldo = totalReceitas - totalDespesas;
       document.getElementById('cardSaldo').innerText = `R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
